@@ -1,0 +1,99 @@
+.auth-home {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background:
+    radial-gradient(circle at top, rgba(249, 115, 22, 0.16), transparent 32%),
+    linear-gradient(180deg, #fcf7ef 0%, #f2e9da 100%);
+}
+
+.auth-home__card {
+  width: min(100%, 42rem);
+  padding: 2.5rem;
+  border-radius: 1.75rem;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 24px 60px rgba(44, 31, 18, 0.12);
+}
+
+.auth-home__eyebrow {
+  margin: 0 0 0.75rem;
+  color: #b45309;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.auth-home__card h1 {
+  margin: 0 0 1rem;
+  color: #18212a;
+}
+
+.auth-home__copy {
+  margin: 0 0 1.5rem;
+  color: #5f4a37;
+  line-height: 1.7;
+}
+
+.auth-home__token {
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+}
+
+.auth-home__token span {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #9a3412;
+  font-weight: 700;
+}
+
+.auth-home__token code {
+  word-break: break-all;
+  color: #7c2d12;
+}
+
+.auth-home__actions {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.auth-home__actions a,
+.auth-home__actions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.85rem 1.2rem;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.auth-home__actions a {
+  background: rgba(24, 33, 42, 0.08);
+  color: #18212a;
+}
+
+.auth-home__actions button {
+  background: #18212a;
+  color: #fcf7ef;
+}
+
+@media (max-width: 640px) {
+  .auth-home__card {
+    padding: 1.5rem;
+  }
+
+  .auth-home__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .auth-home__actions a,
+  .auth-home__actions button {
+    text-align: center;
+  }
+}

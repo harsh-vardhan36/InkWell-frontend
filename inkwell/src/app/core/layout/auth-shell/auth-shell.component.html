@@ -1,0 +1,53 @@
+<section class="auth-shell">
+  <div class="auth-shell__brand-panel">
+    <a class="auth-shell__logo" routerLink="/login" aria-label="InkWell home">
+      <span class="auth-shell__logo-mark">IW</span>
+      <span class="auth-shell__logo-text">InkWell</span>
+    </a>
+
+    <div class="auth-shell__story">
+      <p class="auth-shell__eyebrow">Think, write and publish.</p>
+      <h1>Build your voice into something worth reading.</h1>
+      <p class="auth-shell__description">
+        InkWell is where readers discover ideas, authors grow audiences, and editors
+        shape publishing at scale.
+      </p>
+    </div>
+
+    <div class="auth-shell__highlights" aria-label="Platform highlights">
+      <article class="auth-shell__highlight-card">
+        <span>Latest posts</span>
+        <strong>Editorial-grade publishing experience</strong>
+      </article>
+      <article class="auth-shell__highlight-card">
+        <span>Author tools</span>
+        <strong>Write, upload, analyze and manage content</strong>
+      </article>
+      <article class="auth-shell__highlight-card">
+        <span>Community</span>
+        <strong>Comments, follows, bookmarks and notifications</strong>
+      </article>
+    </div>
+  </div>
+
+  <div class="auth-shell__content-panel">
+    <nav class="auth-shell__nav" aria-label="Authentication pages">
+      <a
+        routerLink="/login"
+        routerLinkActive="is-active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        Sign in
+      </a>
+      <a
+        routerLink="/register"
+        routerLinkActive="is-active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        Create account
+      </a>
+    </nav>
+
+    <router-outlet />
+  </div>
+</section>

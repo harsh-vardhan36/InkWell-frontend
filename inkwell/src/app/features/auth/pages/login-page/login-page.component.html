@@ -1,0 +1,141 @@
+<div class="auth-split">
+
+  <!-- ══ LEFT PANEL — Brand Story ══ -->
+  <aside class="auth-panel" aria-hidden="true">
+    <div class="auth-panel__inner">
+
+      <!-- Logo -->
+      <div class="auth-panel__logo">
+        <div class="auth-panel__logo-icon">✒</div>
+        <span class="auth-panel__logo-name">InkWell</span>
+      </div>
+
+      <!-- Headline -->
+      <div class="auth-panel__hero">
+        <h2 class="auth-panel__headline">
+          Every great<br>story starts with<br>a <em>blank page</em>
+        </h2>
+        <blockquote class="auth-panel__quote">
+          "The secret of getting ahead is getting started."
+          <cite>— Mark Twain</cite>
+        </blockquote>
+      </div>
+
+      <!-- Testimonials -->
+      <div class="auth-panel__testimonials">
+        <div class="auth-panel__testi">
+          <div class="auth-panel__stars">★★★★★</div>
+          <p>"InkWell gave my writing the home it deserved. My readership tripled in three months."</p>
+          <span>— Meera J., writer</span>
+        </div>
+        <div class="auth-panel__testi">
+          <div class="auth-panel__stars">★★★★★</div>
+          <p>"The most beautiful blogging experience I've ever had. Nothing comes close."</p>
+          <span>— Kabir D., journalist</span>
+        </div>
+      </div>
+
+      <!-- Decorative watermark -->
+      <div class="auth-panel__watermark" aria-hidden="true">✍</div>
+    </div>
+  </aside>
+
+  <!-- ══ RIGHT PANEL — Form ══ -->
+  <main class="auth-form-panel">
+    <div class="auth-form-wrap">
+
+      <!-- Mobile-only logo -->
+      <div class="auth-mobile-logo">
+        <div class="auth-panel__logo-icon">✒</div>
+        <span class="auth-panel__logo-name">InkWell</span>
+      </div>
+
+      <p class="auth-eyebrow">Welcome back</p>
+      <h1 class="auth-title">Sign in to continue</h1>
+      <p class="auth-subtitle">Access your feed, stories, and author dashboard.</p>
+
+      <!-- Social login -->
+      <app-social-login-buttons />
+
+      <!-- Divider -->
+      <div class="auth-divider"><span>or sign in with email</span></div>
+
+      <!-- Form -->
+      <form class="auth-form" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+
+        <!-- Email -->
+        <div class="auth-field" [class.auth-field--error]="form.controls.email.touched && form.controls.email.invalid">
+          <label class="auth-field__label" for="login-email">Email address</label>
+          <div class="auth-field__input-wrap">
+            <span class="auth-field__icon">✉</span>
+            <input
+              id="login-email"
+              class="auth-field__input"
+              type="email"
+              formControlName="email"
+              placeholder="you@example.com"
+              autocomplete="email"
+            />
+          </div>
+          <span class="auth-field__error" *ngIf="form.controls.email.touched && form.controls.email.invalid">
+            Enter a valid email address.
+          </span>
+        </div>
+
+        <!-- Password -->
+        <div class="auth-field" [class.auth-field--error]="form.controls.password.touched && form.controls.password.invalid">
+          <div class="auth-field__label-row">
+            <label class="auth-field__label" for="login-password">Password</label>
+            <a href="/" (click)="$event.preventDefault()" class="auth-forgot">Forgot password?</a>
+          </div>
+          <div class="auth-field__input-wrap">
+            <span class="auth-field__icon">🔒</span>
+            <input
+              id="login-password"
+              class="auth-field__input auth-field__input--padded-right"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+            />
+            <button type="button" class="auth-field__reveal" (click)="togglePassword()" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+              {{ showPassword() ? 'Hide' : 'Show' }}
+            </button>
+          </div>
+          <span class="auth-field__error" *ngIf="form.controls.password.touched && form.controls.password.invalid">
+            Password must be at least 8 characters.
+          </span>
+        </div>
+
+        <!-- Remember me -->
+        <label class="auth-checkbox">
+          <input type="checkbox" formControlName="rememberMe" />
+          <span class="auth-checkbox__track">
+            <span class="auth-checkbox__thumb"></span>
+          </span>
+          Keep me signed in
+        </label>
+
+        <!-- Submit error -->
+        <div class="auth-error-bar" *ngIf="submitError()" role="alert">
+          <span>⚠</span> {{ submitError() }}
+        </div>
+
+        <!-- Submit -->
+        <button class="auth-submit" type="submit" [disabled]="isSubmitting()">
+          <span *ngIf="!isSubmitting()">Sign in →</span>
+          <span *ngIf="isSubmitting()" class="auth-submit__loading">
+            <span class="auth-submit__spinner"></span> Signing in...
+          </span>
+        </button>
+
+      </form>
+
+      <p class="auth-switch">
+        New to InkWell? <a routerLink="/register">Create a free account</a>
+      </p>
+
+    </div>
+  </main>
+
+</div>

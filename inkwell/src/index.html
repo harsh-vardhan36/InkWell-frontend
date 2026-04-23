@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>InkWell — Write What Matters</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="InkWell is a home for curious minds. Write beautifully, reach real readers, and build a following that lasts.">
+  <meta name="theme-color" content="#faf7f2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0c0e14" media="(prefers-color-scheme: dark)">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <!-- Google Fonts: Playfair Display (display) + Lato (body/UI) + Lora (prose) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Lato:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Lora:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+
+  <!-- Prevent flash of unstyled theme -->
+  <script>
+    (function() {
+      try {
+        var stored = localStorage.getItem('inkwell.theme.mode');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = stored === 'dark' || stored === 'light' ? stored : (prefersDark ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch(e) {}
+    })();
+  </script>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>

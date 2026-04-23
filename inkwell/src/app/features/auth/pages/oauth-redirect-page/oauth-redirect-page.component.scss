@@ -1,0 +1,27 @@
+.oauth-redirect {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background:
+    radial-gradient(circle at top, rgba(245, 183, 90, 0.18), transparent 35%),
+    linear-gradient(180deg, #fcf7ef 0%, #f5ede1 100%);
+}
+
+.oauth-redirect__card {
+  width: min(100%, 28rem);
+  padding: 2rem;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 24px 60px rgba(73, 47, 21, 0.14);
+  text-align: center;
+}
+
+.oauth-redirect__card h2 {
+  margin: 0 0 0.75rem;
+}
+
+.oauth-redirect__card p {
+  margin: 0;
+  color: #5f4a37;
+}

@@ -1,0 +1,135 @@
+/* ═══════════════════════════════════════════════
+   SOCIAL LOGIN BUTTONS — Premium Redesign
+   Full-width stacked layout, per-provider branding
+═══════════════════════════════════════════════ */
+
+.social-login {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+/* ── Base Button ── */
+.social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 13px 20px;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--iw-border-2);
+  background: var(--iw-surface-solid);
+  color: var(--iw-ink-2);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.01em;
+}
+
+/* Shimmer sweep effect on hover */
+.social-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  background-position: -200% center;
+  transition: background-position 0.55s ease;
+  pointer-events: none;
+}
+
+.social-btn:hover::after {
+  background-position: 200% center;
+}
+
+/* ── Content wrapper ── */
+.social-btn__content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ── Google ── */
+.social-btn--google:hover:not(:disabled) {
+  border-color: #4285f4;
+  background: rgba(66, 133, 244, 0.06);
+  color: #3367d6;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(66, 133, 244, 0.16);
+}
+
+.social-btn--google:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* ── GitHub ── */
+.social-btn--github:hover:not(:disabled) {
+  border-color: var(--iw-ink-2);
+  background: rgba(36, 41, 47, 0.06);
+  color: var(--iw-ink);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(36, 41, 47, 0.12);
+}
+
+:root[data-theme='dark'] .social-btn--github:hover:not(:disabled) {
+  border-color: rgba(200, 180, 150, 0.5);
+  background: rgba(200, 180, 150, 0.06);
+  color: var(--iw-ink);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.social-btn--github:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* ── Icon ── */
+.social-btn__icon {
+  flex-shrink: 0;
+  display: block;
+}
+
+/* ── Loading state ── */
+.social-btn--loading,
+.social-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.social-btn--loading {
+  cursor: wait !important;
+  opacity: 0.85;
+}
+
+/* ── Spinner ── */
+.social-btn__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--iw-border-2);
+  border-top-color: var(--iw-brand);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+  display: inline-block;
+}

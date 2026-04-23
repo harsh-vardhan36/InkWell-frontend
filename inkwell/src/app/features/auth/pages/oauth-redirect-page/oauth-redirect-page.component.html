@@ -1,0 +1,15 @@
+<section class="oauth-redirect" *ngIf="error() as message; else loading">
+  <div class="oauth-redirect__card">
+    <h2>We couldn't complete sign in.</h2>
+    <p>{{ message }}</p>
+  </div>
+</section>
+
+<ng-template #loading>
+  <section class="oauth-redirect">
+    <div class="oauth-redirect__card">
+      <h2>Finishing sign in...</h2>
+      <p>Please wait while we complete your InkWell session.</p>
+    </div>
+  </section>
+</ng-template>

@@ -1,0 +1,357 @@
+<div class="auth-split auth-split--register">
+
+  <!-- ══ LEFT PANEL — Brand Story ══ -->
+  <aside class="auth-panel auth-panel--emerald" aria-hidden="true">
+    <div class="auth-panel__inner">
+
+      <!-- Logo -->
+      <div class="auth-panel__logo">
+        <div class="auth-panel__logo-icon">✒</div>
+        <span class="auth-panel__logo-name">InkWell</span>
+      </div>
+
+      <!-- Headline -->
+      <div class="auth-panel__hero">
+        <h2 class="auth-panel__headline">
+          Join a world of<br><em>extraordinary</em><br>storytellers
+        </h2>
+        <blockquote class="auth-panel__quote">
+          "You don't start out writing good stuff. You start out writing crap and thinking it's good stuff, and then gradually you get better."
+          <cite>— Octavia Butler</cite>
+        </blockquote>
+
+        <ul class="auth-panel__perks">
+          <li>
+            <span class="auth-panel__perk-icon">✦</span>
+            Beautiful, distraction-free editor
+          </li>
+          <li>
+            <span class="auth-panel__perk-icon">✦</span>
+            Built-in audience &amp; discovery
+          </li>
+          <li>
+            <span class="auth-panel__perk-icon">✦</span>
+            Earn from your writing
+          </li>
+          <li>
+            <span class="auth-panel__perk-icon">✦</span>
+            Deep analytics &amp; insights
+          </li>
+        </ul>
+      </div>
+
+      <!-- Stats row -->
+      <div class="auth-panel__stats">
+        <div class="auth-panel__stat">
+          <strong>12K+</strong>
+          <span>Active Writers</span>
+        </div>
+        <div class="auth-panel__stat-sep"></div>
+        <div class="auth-panel__stat">
+          <strong>2.4M</strong>
+          <span>Monthly Readers</span>
+        </div>
+        <div class="auth-panel__stat-sep"></div>
+        <div class="auth-panel__stat">
+          <strong>Free</strong>
+          <span>To Start</span>
+        </div>
+      </div>
+
+      <!-- Watermark -->
+      <div class="auth-panel__watermark" aria-hidden="true">✒</div>
+    </div>
+  </aside>
+
+  <!-- ══ RIGHT PANEL — Register Form / OTP Verification ══ -->
+  <main class="auth-form-panel">
+    <div class="auth-form-wrap">
+
+      <!-- Mobile-only logo -->
+      <div class="auth-mobile-logo">
+        <div class="auth-panel__logo-icon auth-panel__logo-icon--brand">✒</div>
+        <span class="auth-panel__logo-name auth-panel__logo-name--ink">InkWell</span>
+      </div>
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- STEP 1: Registration Form                   -->
+      <!-- ════════════════════════════════════════════ -->
+      <div class="auth-step" *ngIf="currentStep() === 'form'" id="register-form-step">
+
+        <p class="auth-eyebrow">Join InkWell</p>
+        <h1 class="auth-title">Create your account</h1>
+        <p class="auth-subtitle">Start your writing journey for free — no credit card needed.</p>
+
+        <!-- Social login -->
+        <app-social-login-buttons />
+
+        <!-- Divider -->
+        <div class="auth-divider"><span>or sign up with email</span></div>
+
+        <!-- Form -->
+        <form class="auth-form" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+
+          <!-- Two-column row: username + fullName -->
+          <div class="auth-form__row">
+
+            <!-- Username -->
+            <div class="auth-field" [class.auth-field--error]="form.controls.username.touched && form.controls.username.invalid">
+              <label class="auth-field__label" for="reg-username">Username</label>
+              <div class="auth-field__input-wrap">
+                <span class="auth-field__icon">@</span>
+                <input
+                  id="reg-username"
+                  class="auth-field__input"
+                  type="text"
+                  formControlName="username"
+                  placeholder="ayushraj"
+                  autocomplete="username"
+                />
+              </div>
+              <span class="auth-field__error" *ngIf="form.controls.username.touched && form.controls.username.invalid">
+                Username is required.
+              </span>
+            </div>
+
+            <!-- Full name -->
+            <div class="auth-field" [class.auth-field--error]="form.controls.fullName.touched && form.controls.fullName.invalid">
+              <label class="auth-field__label" for="reg-fullname">Full name</label>
+              <div class="auth-field__input-wrap">
+                <span class="auth-field__icon">👤</span>
+                <input
+                  id="reg-fullname"
+                  class="auth-field__input"
+                  type="text"
+                  formControlName="fullName"
+                  placeholder="Harsh Vardhan"
+                  autocomplete="name"
+                />
+              </div>
+              <span class="auth-field__error" *ngIf="form.controls.fullName.touched && form.controls.fullName.invalid">
+                At least 3 characters.
+              </span>
+            </div>
+
+          </div>
+
+          <!-- Email -->
+          <div class="auth-field" [class.auth-field--error]="form.controls.email.touched && form.controls.email.invalid">
+            <label class="auth-field__label" for="reg-email">Email address</label>
+            <div class="auth-field__input-wrap">
+              <span class="auth-field__icon">✉</span>
+              <input
+                id="reg-email"
+                class="auth-field__input"
+                type="email"
+                formControlName="email"
+                placeholder="you@example.com"
+                autocomplete="email"
+              />
+            </div>
+            <span class="auth-field__error" *ngIf="form.controls.email.touched && form.controls.email.invalid">
+              Enter a valid email address.
+            </span>
+          </div>
+
+          <!-- Password -->
+          <div class="auth-field" [class.auth-field--error]="form.controls.password.touched && form.controls.password.invalid">
+            <label class="auth-field__label" for="reg-password">Password</label>
+            <div class="auth-field__input-wrap">
+              <span class="auth-field__icon">🔒</span>
+              <input
+                id="reg-password"
+                class="auth-field__input auth-field__input--padded-right"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="password"
+                placeholder="Create a strong password"
+                autocomplete="new-password"
+              />
+              <button type="button" class="auth-field__reveal" (click)="togglePassword()">
+                {{ showPassword() ? 'Hide' : 'Show' }}
+              </button>
+            </div>
+            <span class="auth-field__error" *ngIf="form.controls.password.touched && form.controls.password.invalid">
+              Min. 8 characters — include uppercase, lowercase &amp; special character.
+            </span>
+          </div>
+
+          <!-- Confirm password -->
+          <div class="auth-field" [class.auth-field--error]="passwordsDoNotMatch()">
+            <label class="auth-field__label" for="reg-confirm">Confirm password</label>
+            <div class="auth-field__input-wrap">
+              <span class="auth-field__icon">🔒</span>
+              <input
+                id="reg-confirm"
+                class="auth-field__input auth-field__input--padded-right"
+                [type]="showConfirmPassword() ? 'text' : 'password'"
+                formControlName="confirmPassword"
+                placeholder="Re-enter your password"
+                autocomplete="new-password"
+              />
+              <button type="button" class="auth-field__reveal" (click)="toggleConfirmPassword()">
+                {{ showConfirmPassword() ? 'Hide' : 'Show' }}
+              </button>
+            </div>
+            <span class="auth-field__error" *ngIf="passwordsDoNotMatch()">
+              Passwords do not match.
+            </span>
+          </div>
+
+          <!-- Terms checkbox -->
+          <label class="auth-checkbox-terms" [class.auth-checkbox-terms--error]="form.controls.agreeToTerms.touched && form.controls.agreeToTerms.invalid">
+            <input type="checkbox" formControlName="agreeToTerms" />
+            <span class="auth-checkbox-terms__box">
+              <svg *ngIf="form.controls.agreeToTerms.value" width="11" height="9" viewBox="0 0 11 9" fill="none">
+                <path d="M1 4.5L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span>
+              I agree to InkWell's
+              <a href="/" (click)="$event.preventDefault()">Terms of Service</a>
+              and
+              <a href="/" (click)="$event.preventDefault()">Privacy Policy</a>
+            </span>
+          </label>
+          <span class="auth-field__error" *ngIf="form.controls.agreeToTerms.touched && form.controls.agreeToTerms.invalid">
+            You must accept the terms to create an account.
+          </span>
+
+          <!-- Submit error -->
+          <div class="auth-error-bar" *ngIf="submitError()" role="alert">
+            <span>⚠</span> {{ submitError() }}
+          </div>
+
+          <!-- Submit -->
+          <button class="auth-submit" type="submit" [disabled]="isSubmitting()">
+            <span *ngIf="!isSubmitting()">Continue →</span>
+            <span *ngIf="isSubmitting()" class="auth-submit__loading">
+              <span class="auth-submit__spinner"></span> Sending verification code...
+            </span>
+          </button>
+
+        </form>
+
+        <p class="auth-switch">
+          Already have an account? <a routerLink="/login">Sign in</a>
+        </p>
+
+      </div>
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- STEP 2: OTP Verification                    -->
+      <!-- ════════════════════════════════════════════ -->
+      <div class="auth-step otp-step" *ngIf="currentStep() === 'otp'" id="otp-verify-step">
+
+        <!-- Back button -->
+        <button class="otp-back" type="button" (click)="goBackToForm()" aria-label="Go back to form">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Back
+        </button>
+
+        <!-- OTP Hero illustration -->
+        <div class="otp-hero">
+          <div class="otp-hero__icon">
+            <div class="otp-hero__icon-ring"></div>
+            <div class="otp-hero__icon-ring otp-hero__icon-ring--2"></div>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </div>
+        </div>
+
+        <p class="auth-eyebrow">Almost there</p>
+        <h1 class="auth-title otp-title">Verify your email</h1>
+        <p class="auth-subtitle otp-subtitle">
+          We've sent a 6-digit verification code to
+          <strong class="otp-email-highlight">{{ maskedEmail() }}</strong>
+        </p>
+
+        <!-- OTP Input Grid -->
+        <div class="otp-input-group" id="otp-input-container">
+          <input
+            *ngFor="let digit of otpDigits(); let i = index"
+            class="otp-input"
+            [class.otp-input--filled]="digit.length > 0"
+            [class.otp-input--error]="otpError()"
+            [class.otp-input--success]="otpSuccess()"
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            [value]="digit"
+            (input)="onOtpInput(i, $event)"
+            (keydown)="onOtpKeydown(i, $event)"
+            (paste)="onOtpPaste($event)"
+            [attr.aria-label]="'Digit ' + (i + 1)"
+            autocomplete="one-time-code"
+          />
+        </div>
+
+        <!-- OTP Success message -->
+        <div class="otp-success-bar" *ngIf="otpSuccess()" role="status">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M5 8L7 10L11 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          {{ otpSuccess() }}
+        </div>
+
+        <!-- OTP Error message -->
+        <div class="auth-error-bar" *ngIf="otpError()" role="alert">
+          <span>⚠</span> {{ otpError() }}
+        </div>
+
+        <!-- Verify Button -->
+        <button
+          class="auth-submit otp-verify-btn"
+          type="button"
+          (click)="verifyOtp()"
+          [disabled]="isVerifying() || !isOtpComplete()"
+        >
+          <span *ngIf="!isVerifying()">Verify & Create Account</span>
+          <span *ngIf="isVerifying()" class="auth-submit__loading">
+            <span class="auth-submit__spinner"></span> Verifying...
+          </span>
+        </button>
+
+        <!-- Resend section -->
+        <div class="otp-resend">
+          <p class="otp-resend__text">
+            Didn't receive the code?
+          </p>
+          <button
+            class="otp-resend__btn"
+            type="button"
+            (click)="resendOtp()"
+            [disabled]="resendCooldown() > 0 || isResending()"
+          >
+            <span *ngIf="isResending()">
+              <span class="otp-resend__spinner"></span> Sending...
+            </span>
+            <span *ngIf="!isResending() && resendCooldown() > 0">
+              Resend code in {{ resendCooldown() }}s
+            </span>
+            <span *ngIf="!isResending() && resendCooldown() <= 0">
+              Resend code
+            </span>
+          </button>
+        </div>
+
+        <!-- Tip -->
+        <div class="otp-tip">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M8 5V8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <circle cx="8" cy="11" r="0.6" fill="currentColor"/>
+          </svg>
+          <span>Check your spam folder if you don't see the email</span>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+</div>

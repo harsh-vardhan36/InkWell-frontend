@@ -1,0 +1,19 @@
+<section class="auth-home">
+  <div class="auth-home__card">
+    <p class="auth-home__eyebrow">Signed in</p>
+    <h1>Welcome to InkWell.</h1>
+    <p class="auth-home__copy">
+      Your authentication flow is working and your session token is stored in the browser.
+    </p>
+
+    <div class="auth-home__token" *ngIf="tokenPreview() as token">
+      <span>Saved token</span>
+      <code>{{ token }}</code>
+    </div>
+
+    <div class="auth-home__actions">
+      <a routerLink="/login">Back to sign in</a>
+      <button type="button" (click)="signOut()">Sign out</button>
+    </div>
+  </div>
+</section>
