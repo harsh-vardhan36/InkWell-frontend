@@ -5,19 +5,19 @@ import { ThemeMode, ThemeService } from '../../../core/theme/theme.service';
 @Component({
   selector: 'app-theme-toggle',
   standalone: true,
-  imports: [CommonModule],
   template: `
     <div class="theme-toggle" role="group" aria-label="Theme mode">
-      <button
-        *ngFor="let option of options"
-        type="button"
-        class="theme-toggle__button"
-        [class.is-active]="theme.mode() === option.value"
-        (click)="theme.setMode(option.value)"
-      >
-        <span>{{ option.icon }}</span>
-        <span>{{ option.label }}</span>
-      </button>
+      @for (option of options; track option.value) {
+        <button
+          type="button"
+          class="theme-toggle__button"
+          [class.is-active]="theme.mode() === option.value"
+          (click)="setMode(option.value)"
+          [title]="option.label + ' mode'"
+        >
+          <span class="theme-toggle__icon">{{ option.icon }}</span>
+        </button>
+      }
     </div>
   `,
   styles: [
@@ -37,16 +37,18 @@ import { ThemeMode, ThemeService } from '../../../core/theme/theme.service';
         border: 0;
         background: transparent;
         border-radius: 999px;
-        padding: 0.55rem 0.8rem;
+        width: 38px;
+        height: 38px;
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
+        justify-content: center;
         color: var(--iw-muted);
         cursor: pointer;
+        font-size: 1.1rem;
         transition:
-          background-color 180ms ease,
-          color 180ms ease,
-          transform 180ms ease;
+          background-color 220ms cubic-bezier(0.4, 0, 0.2, 1),
+          color 220ms cubic-bezier(0.4, 0, 0.2, 1),
+          transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
       }
 
       .theme-toggle__button:hover {
@@ -54,18 +56,12 @@ import { ThemeMode, ThemeService } from '../../../core/theme/theme.service';
       }
 
       .theme-toggle__button.is-active {
-        background: linear-gradient(135deg, var(--iw-brand) 0%, #78a9ff 100%);
+        background: var(--iw-brand-gradient);
         color: white;
         transform: translateY(-1px);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), var(--iw-brand-glow);
       }
 
-      @media (max-width: 640px) {
-        .theme-toggle {
-          width: 100%;
-          justify-content: center;
-        }
-      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,8 +69,13 @@ import { ThemeMode, ThemeService } from '../../../core/theme/theme.service';
 export class ThemeToggleComponent {
   protected readonly theme = inject(ThemeService);
   protected readonly options: Array<{ label: string; value: ThemeMode; icon: string }> = [
-    { label: 'Light', value: 'light', icon: 'Sun' },
-    { label: 'Dark', value: 'dark', icon: 'Moon' },
-    { label: 'Auto', value: 'system', icon: 'Sync' },
+    { label: 'Light', value: 'light', icon: '☀️' },
+    { label: 'Dark', value: 'dark', icon: '🌙' },
+    { label: 'Auto', value: 'system', icon: '🌗' },
   ];
+
+  setMode(mode: ThemeMode) {
+    console.log('[ThemeToggleComponent] Setting mode:', mode);
+    this.theme.setMode(mode);
+  }
 }

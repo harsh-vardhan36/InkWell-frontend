@@ -1,0 +1,96 @@
+<div class="earnings-page">
+  <header class="page-header">
+    <div class="header-content">
+      <p class="eyebrow">Monetization</p>
+      <h1>Earnings</h1>
+      <p class="subtitle">Track your revenue and manage your financial growth on InkWell.</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn--primary">💸 Request Payout</button>
+    </div>
+  </header>
+
+  <!-- Stats Grid -->
+  <div class="earnings-hero">
+    <div class="e-stat e-stat--featured">
+      <span class="e-stat-label">Total Balance</span>
+      <strong class="e-stat-value">₹{{ totalEarnings() | number }}</strong>
+      <span class="e-stat-hint">+12% from last month</span>
+    </div>
+    <div class="e-stat">
+      <span class="e-stat-label">Pending Payout</span>
+      <strong class="e-stat-value">₹{{ pendingPayout() | number }}</strong>
+      <span class="e-stat-hint">Next payout: May 1, 2026</span>
+    </div>
+    <div class="e-stat">
+      <span class="e-stat-label">Last Payout</span>
+      <strong class="e-stat-value">₹{{ lastPayout() | number }}</strong>
+      <span class="e-stat-hint">Paid on Apr 1, 2026</span>
+    </div>
+  </div>
+
+  <div class="earnings-layout">
+    <div class="main-column">
+      <!-- Revenue Breakdown -->
+      <div class="e-card">
+        <h3>Revenue Sources</h3>
+        <div class="breakdown-list">
+          <div *ngFor="let item of breakdown()" class="breakdown-item">
+            <div class="breakdown-info">
+              <span class="dot" [style.background-color]="item.color"></span>
+              <span class="label">{{ item.label }}</span>
+            </div>
+            <div class="breakdown-value">
+              <strong>₹{{ item.amount | number }}</strong>
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width]="(item.amount / totalEarnings() * 100) + '%'" [style.background-color]="item.color"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transaction History -->
+      <div class="e-card">
+        <div class="card-header">
+          <h3>Transaction History</h3>
+          <button class="btn-link">Download PDF</button>
+        </div>
+        
+        <div class="transaction-list">
+          <div *ngFor="let t of history()" class="transaction-item">
+            <div class="t-icon">💰</div>
+            <div class="t-info">
+              <span class="t-type">{{ t.type }}</span>
+              <span class="t-date">{{ t.date | date:'mediumDate' }}</span>
+            </div>
+            <div class="t-amount">
+              <strong>+₹{{ t.amount | number }}</strong>
+              <span class="t-status">{{ t.status }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="side-column">
+      <div class="payout-method-card">
+        <h3>Payout Method</h3>
+        <div class="method-info">
+          <span class="method-icon">🏦</span>
+          <div class="method-details">
+            <strong>HDFC Bank **** 1234</strong>
+            <span>Verified & Active</span>
+          </div>
+        </div>
+        <button class="btn-outline-full">Change Method</button>
+      </div>
+
+      <div class="tax-card">
+        <h3>Tax Information</h3>
+        <p>Your tax documentation is up to date for the 2026 fiscal year.</p>
+        <div class="tax-badge">Verified</div>
+      </div>
+    </aside>
+  </div>
+</div>

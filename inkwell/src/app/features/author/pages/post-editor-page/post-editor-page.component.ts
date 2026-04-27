@@ -1,189 +1,314 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { finalize, forkJoin, of, switchMap } from 'rxjs';
+import { CategoryApiService, CategoryOption } from '../../data-access/category-api.service';
+import {
+  NormalizedWriteResponse,
+  PostApiService,
+  PostEditorPayload,
+} from '../../data-access/post-api.service';
+
+type EditorMode = 'markdown' | 'rich';
 
 @Component({
   selector: 'app-post-editor-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
-    <section class="editor-layout">
-      <article class="editor-panel">
-        <p class="editor-panel__eyebrow">Write</p>
-        <input
-          class="editor-panel__title"
-          type="text"
-          [(ngModel)]="title"
-          placeholder="Give your story a title"
-        />
-
-        <div class="editor-toolbar">
-          <button type="button" (click)="setMode('markdown')" [class.is-active]="mode() === 'markdown'">
-            Markdown
-          </button>
-          <button type="button" (click)="setMode('rich')" [class.is-active]="mode() === 'rich'">
-            Rich text
-          </button>
-          <button type="button">Insert code block</button>
-          <button type="button" [disabled]="!isPro">Upload image</button>
-        </div>
-
-        <textarea
-          class="editor-panel__body"
-          [(ngModel)]="body"
-          placeholder="Start with an idea worth reading..."
-        ></textarea>
-
-        <div class="editor-actions">
-          <button type="button" class="ghost">Save draft</button>
-          <button type="button" class="primary">Publish</button>
-        </div>
-      </article>
-
-      <aside class="editor-side">
-        <section class="editor-card">
-          <p class="editor-panel__eyebrow">Publishing status</p>
-          <div class="editor-row"><strong>Autosave</strong><span>Every 20 seconds</span></div>
-          <div class="editor-row"><strong>Plan</strong><span>{{ isPro ? 'Pro' : 'Free' }}</span></div>
-          <div class="editor-row"><strong>Media upload</strong><span>{{ isPro ? 'Enabled' : 'Upgrade required' }}</span></div>
-        </section>
-
-        <section class="editor-card">
-          <p class="editor-panel__eyebrow">Preview notes</p>
-          <p>
-            Keep paragraphs short, add code blocks where needed, and use the day/night
-            toggle to check long-form readability before you publish.
-          </p>
-        </section>
-      </aside>
-    </section>
-  `,
-  styles: [
-    `
-      .editor-layout {
-        display: grid;
-        grid-template-columns: minmax(0, 2fr) minmax(280px, 0.95fr);
-        gap: 1rem;
-      }
-
-      .editor-panel,
-      .editor-card {
-        padding: 1.4rem;
-        border-radius: 1.5rem;
-        background: var(--iw-surface);
-        border: 1px solid var(--iw-border);
-        box-shadow: var(--iw-shadow);
-      }
-
-      .editor-panel__eyebrow {
-        margin: 0 0 0.75rem;
-        color: var(--iw-brand);
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        font-size: 0.78rem;
-        font-weight: 700;
-      }
-
-      .editor-panel__title,
-      .editor-panel__body {
-        width: 100%;
-        border: 1px solid var(--iw-border);
-        border-radius: 1.1rem;
-        background: var(--iw-surface-strong);
-        color: var(--iw-ink);
-      }
-
-      .editor-panel__title {
-        margin-bottom: 1rem;
-        padding: 1rem 1.1rem;
-        font-size: clamp(1.5rem, 2.5vw, 2.6rem);
-        font-family: 'Baskerville', 'Iowan Old Style', 'Palatino Linotype', serif;
-      }
-
-      .editor-toolbar,
-      .editor-actions,
-      .editor-row {
-        display: flex;
-        gap: 0.7rem;
-        flex-wrap: wrap;
-      }
-
-      .editor-toolbar {
-        margin-bottom: 1rem;
-      }
-
-      .editor-toolbar button,
-      .editor-actions button {
-        border: 1px solid var(--iw-border);
-        border-radius: 999px;
-        padding: 0.75rem 1rem;
-        background: transparent;
-        cursor: pointer;
-      }
-
-      .editor-toolbar button.is-active,
-      .editor-actions .primary {
-        background: var(--iw-brand-strong);
-        color: var(--iw-surface);
-      }
-
-      .editor-actions .ghost {
-        background: var(--iw-surface-strong);
-      }
-
-      .editor-panel__body {
-        min-height: 420px;
-        resize: vertical;
-        padding: 1rem 1.1rem;
-        line-height: 1.75;
-      }
-
-      .editor-actions {
-        margin-top: 1rem;
-      }
-
-      .editor-side {
-        display: grid;
-        gap: 1rem;
-        align-self: start;
-      }
-
-      .editor-row {
-        justify-content: space-between;
-        padding: 0.85rem 0;
-        border-top: 1px solid var(--iw-border);
-      }
-
-      .editor-row:first-of-type {
-        border-top: 0;
-        padding-top: 0;
-      }
-
-      .editor-card p {
-        color: var(--iw-muted);
-        line-height: 1.7;
-      }
-
-      @media (max-width: 960px) {
-        .editor-layout {
-          grid-template-columns: 1fr;
-        }
-      }
-    `,
-  ],
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: './post-editor-page.component.html',
+  styleUrl: './post-editor-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PostEditorPageComponent {
-  protected title = 'Day and night modes that respect the reading experience';
-  protected body = `A good writing surface should disappear while still giving authors confidence.
+export class PostEditorPageComponent implements OnInit {
+  private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
+  private readonly postApi = inject(PostApiService);
+  private readonly categoryApi = inject(CategoryApiService);
 
-Start with a strong opening paragraph, use subheadings to pace the piece, and add code blocks only when they clarify the idea.
+  readonly mode = signal<EditorMode>('markdown');
+  readonly categories = signal<CategoryOption[]>([]);
+  readonly suggestedTags = signal<string[]>([]);
+  readonly draftId = signal<number | string | null>(null);
+  readonly isLoading = signal(true);
+  readonly isSavingDraft = signal(false);
+  readonly isPublishing = signal(false);
+  readonly saveMessage = signal<string | null>(null);
+  readonly errorMessage = signal<string | null>(null);
+  readonly previewTitle = computed(() => this.form.controls.title.value.trim() || 'Untitled story');
+  readonly previewExcerpt = computed(
+    () =>
+      this.form.controls.excerpt.value.trim() ||
+      'A short summary helps readers decide whether to open the full story.',
+  );
+  readonly previewCategory = computed(() => {
+    const selected = this.categories().find(
+      (category) => category.id.toString() === this.form.controls.categoryId.value,
+    );
 
-When the backend autosave and publish APIs are ready, this page can connect directly to draft and publish endpoints.`;
-  protected readonly mode = signal<'markdown' | 'rich'>('markdown');
-  protected readonly isPro = false;
+    return selected?.name ?? 'Uncategorized';
+  });
+  readonly previewTags = computed(() => this.parseTags(this.form.controls.tags.value).slice(0, 4));
 
-  protected setMode(mode: 'markdown' | 'rich') {
+  readonly form = this.fb.nonNullable.group({
+    title: ['', [Validators.required, Validators.minLength(3)]],
+    excerpt: ['', [Validators.maxLength(220)]],
+    slug: [''],
+    categoryId: [''],
+    tags: [''],
+    coverImageUrl: [''],
+    content: ['', [Validators.required, Validators.minLength(10)]],
+  });
+
+  readonly wordCount = computed(() => {
+    const content = this.form.controls.content.value.trim();
+
+    return content ? content.split(/\s+/).length : 0;
+  });
+
+  readonly readTime = computed(() => Math.max(1, Math.ceil(this.wordCount() / 220)));
+  readonly deploymentNote =
+    'Media upload will stay disabled in deployment until AWS S3 is configured for the media service.';
+
+  ngOnInit() {
+    const routeId = this.route.snapshot.paramMap.get('id');
+
+    forkJoin({
+      categories: this.categoryApi.getCategories(),
+      tags: this.categoryApi.getTags(),
+      post: routeId ? this.postApi.getPost(routeId) : of(null),
+    })
+      .pipe(finalize(() => this.isLoading.set(false)))
+      .subscribe({
+        next: ({ categories, tags, post }) => {
+          this.categories.set(categories);
+          this.suggestedTags.set(tags.slice(0, 8));
+
+          if (post) {
+            this.hydrateFromPost(post);
+          } else {
+            this.seedDraft();
+          }
+        },
+        error: () => {
+          this.seedDraft();
+          this.errorMessage.set('Editor loaded, but some post metadata could not be fetched yet.');
+        },
+      });
+  }
+
+  setMode(mode: EditorMode) {
     this.mode.set(mode);
+  }
+
+  insertSnippet(type: 'code' | 'quote' | 'image') {
+    const control = this.form.controls.content;
+    const current = control.value.trimEnd();
+
+    const snippet =
+      type === 'code'
+        ? '\n\n```ts\n// Add a useful example here\n```\n'
+        : type === 'quote'
+          ? '\n\n> Add a pull-quote that deserves emphasis.\n'
+          : '\n\n![Media placeholder](https://example.com/cover.jpg)\n';
+
+    control.setValue(`${current}${snippet}`);
+    control.markAsDirty();
+  }
+
+  applySuggestedTag(tag: string) {
+    const currentTags = this.parseTags(this.form.controls.tags.value);
+
+    if (currentTags.includes(tag)) {
+      return;
+    }
+
+    this.form.controls.tags.setValue([...currentTags, tag].join(', '));
+    this.form.controls.tags.markAsDirty();
+  }
+
+  saveDraft() {
+    this.persistDraft('draft');
+  }
+
+  publish() {
+    this.persistDraft('publish');
+  }
+
+  private persistDraft(mode: 'draft' | 'publish') {
+    this.errorMessage.set(null);
+    this.saveMessage.set(null);
+
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    const payload = this.buildPayload();
+    const activeId = this.route.snapshot.paramMap.get('id') ?? this.draftId();
+
+    if (mode === 'draft') {
+      this.isSavingDraft.set(true);
+    } else {
+      this.isPublishing.set(true);
+    }
+
+    const write$ = activeId
+      ? this.postApi.updatePost(activeId, payload)
+      : this.postApi.createPost(payload);
+
+    write$
+      .pipe(
+        switchMap((response) => {
+          const normalized = this.normalizePost(response);
+          const resolvedId = normalized.id ?? activeId;
+
+          if (resolvedId !== null && resolvedId !== undefined) {
+            this.draftId.set(resolvedId);
+          }
+
+          if (mode === 'publish' && resolvedId !== null && resolvedId !== undefined) {
+            return this.postApi.publishPost(resolvedId);
+          }
+
+          if (mode === 'publish') {
+            throw new Error('Draft was created, but no post id was returned for publishing.');
+          }
+
+          return of(response);
+        }),
+        finalize(() => {
+          this.isSavingDraft.set(false);
+          this.isPublishing.set(false);
+        }),
+      )
+      .subscribe({
+        next: (response) => {
+          const normalized = this.normalizePost(response);
+
+          if (normalized.id !== null && normalized.id !== undefined) {
+            this.draftId.set(normalized.id);
+          }
+
+          this.saveMessage.set(
+            mode === 'publish'
+              ? 'Post published successfully.'
+              : 'Draft saved successfully.',
+          );
+        },
+        error: (error) => {
+          this.errorMessage.set(
+            error?.error?.message ??
+              (error instanceof Error ? error.message : null) ??
+              `Unable to ${mode === 'publish' ? 'publish' : 'save'} this post right now.`,
+          );
+        },
+      });
+  }
+
+  private buildPayload(): PostEditorPayload {
+    const value = this.form.getRawValue();
+
+    return {
+      title: value.title.trim(),
+      excerpt: value.excerpt.trim(),
+      slug: value.slug.trim(),
+      categoryId: value.categoryId || null,
+      coverImageUrl: value.coverImageUrl.trim(),
+      tags: this.parseTags(value.tags),
+      content: value.content.trim(),
+    };
+  }
+
+  private parseTags(value: string): string[] {
+    return value
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+  }
+
+  private seedDraft() {
+    this.form.patchValue({
+      title: '',
+      excerpt: '',
+      content:
+        '',
+    });
+  }
+
+  private hydrateFromPost(response: unknown) {
+    const post = this.normalizePost(response);
+
+    this.draftId.set(post.id ?? null);
+    this.form.reset({
+      title: post.title ?? '',
+      excerpt: post.excerpt ?? '',
+      slug: post.slug ?? '',
+      categoryId: post.categoryId?.toString() ?? '',
+      coverImageUrl: post.coverImageUrl ?? '',
+      tags: post.tags.join(', '),
+      content: post.content ?? '',
+    });
+  }
+
+  private normalizePost(response: unknown) {
+    const responseWithMeta = (response ?? {}) as NormalizedWriteResponse & {
+      body?: unknown;
+      location?: string | null;
+    };
+    const value = (
+      'body' in responseWithMeta && responseWithMeta.body !== undefined
+        ? responseWithMeta.body
+        : responseWithMeta
+    ) as {
+      id?: number | string;
+      postId?: number | string;
+      title?: string;
+      excerpt?: string;
+      summary?: string;
+      description?: string;
+      slug?: string;
+      content?: string;
+      body?: string;
+      categoryId?: number | string;
+      category?: { id?: number | string } | null;
+      coverImageUrl?: string;
+      coverUrl?: string;
+      thumbnailUrl?: string;
+      featuredImageUrl?: string;
+      tags?: Array<string | { name?: string; tag?: string }>;
+    };
+    const locationId = this.extractIdFromLocation(
+      'location' in responseWithMeta ? responseWithMeta.location : null,
+    );
+
+    const tags = Array.isArray(value.tags)
+      ? value.tags
+          .map((tag) =>
+            typeof tag === 'string' ? tag : tag?.name ?? tag?.tag ?? '',
+          )
+          .filter(Boolean)
+      : [];
+
+    return {
+      id: value.id ?? value.postId ?? locationId ?? null,
+      title: value.title ?? '',
+      excerpt: value.excerpt ?? value.summary ?? value.description ?? '',
+      slug: value.slug ?? '',
+      content: value.content ?? value.body ?? '',
+      categoryId: value.categoryId ?? value.category?.id ?? null,
+      coverImageUrl:
+        value.coverImageUrl ?? value.coverUrl ?? value.thumbnailUrl ?? value.featuredImageUrl ?? '',
+      tags,
+    };
+  }
+
+  private extractIdFromLocation(location: string | null | undefined) {
+    if (!location) {
+      return null;
+    }
+
+    const match = location.match(/\/posts\/([^/]+)$/);
+    return match?.[1] ?? null;
   }
 }

@@ -1,0 +1,163 @@
+<section class="newsletter">
+  <header class="page-header">
+    <div class="page-header__left">
+      <p class="page-header__eyebrow">Engagement & Communication</p>
+      <h1>Newsletter Studio</h1>
+      <p class="page-header__sub">Bridge the gap between your writing and your audience's inbox.</p>
+    </div>
+  </header>
+
+  <div class="newsletter-hero">
+    <div class="hero-glow"></div>
+    <div class="hero-content">
+      <div class="hero-main">
+        <h2>Your voice, delivered.</h2>
+        <p>Connect with <strong>{{ subscribersCount() }} subscribers</strong> who have opted in to follow your journey. Launch a new campaign to keep them engaged.</p>
+      </div>
+      
+      <div class="hero-stats">
+        <div class="h-stat">
+          <span class="h-stat-label">Subscribers</span>
+          <strong class="h-stat-value">{{ subscribersCount() }}</strong>
+        </div>
+        <div class="h-stat">
+          <span class="h-stat-label">Avg. Open Rate</span>
+          <strong class="h-stat-value">{{ openRate() }}%</strong>
+        </div>
+        <div class="h-stat">
+          <span class="h-stat-label">Campaigns Sent</span>
+          <strong class="h-stat-value">{{ activeCampaigns() }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="newsletter-layout">
+    <div class="newsletter-main">
+      <!-- Campaign Composer -->
+      <div class="studio-card composer">
+        <div class="card-header">
+          <h3>Create New Campaign</h3>
+          <span class="status-indicator" [class.status-indicator--active]="isSending()">
+            {{ isSending() ? 'Sending...' : 'Ready to Launch' }}
+          </span>
+        </div>
+
+        <div *ngIf="alertMessage()" class="alert-box" [ngClass]="'alert-box--' + alertMessage()?.type">
+          {{ alertMessage()?.text }}
+        </div>
+
+        <!-- Visual Post Selection -->
+        <div class="composer-section">
+          <label class="section-label">1. Select a post to feature</label>
+          <div class="post-selector-grid">
+            <div 
+              *ngFor="let post of publishedPosts()" 
+              class="post-select-card" 
+              [class.post-select-card--active]="selectedPostId() === post.id.toString()"
+              (click)="selectPost(post.id.toString())"
+            >
+              <div class="post-card-icon">📄</div>
+              <div class="post-card-info">
+                <span class="post-card-title">{{ post.title }}</span>
+                <span class="post-card-date">{{ post.publishedAt || 'Published' }}</span>
+              </div>
+              <div class="post-card-check">✓</div>
+            </div>
+
+            <div *ngIf="publishedPosts().length === 0" class="empty-posts">
+              <p>No published posts available. <a routerLink="/write">Write something new!</a></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Note -->
+        <div class="composer-section">
+          <label for="customNote" class="section-label">2. Add a personal note (Optional)</label>
+          <textarea 
+            id="customNote" 
+            [(ngModel)]="customMessage" 
+            class="form-control text-area" 
+            placeholder="Tell your followers why they should read this..."
+            rows="4"
+          ></textarea>
+        </div>
+
+        <div class="composer-footer">
+          <div class="footer-info">
+            <span class="icon">👥</span>
+            <span>Targeting <strong>{{ subscribersCount() }}</strong> active followers</span>
+          </div>
+          <button 
+            class="btn btn--launch" 
+            (click)="sendAlert()" 
+            [disabled]="!selectedPostId() || isSending()">
+            <span class="icon">🚀</span>
+            {{ isSending() ? 'Launching Campaign...' : 'Launch Campaign' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Campaign History -->
+      <div class="studio-card history">
+        <div class="card-header">
+          <h3>Campaign History</h3>
+        </div>
+        
+        <div class="history-list">
+          <div *ngFor="let item of campaignHistory()" class="history-item">
+            <div class="history-icon">✉️</div>
+            <div class="history-info">
+              <span class="history-title">{{ item.title }}</span>
+              <span class="history-meta">Sent on {{ item.sentAt | date:'mediumDate' }} to {{ item.subscribers }} people</span>
+            </div>
+            <div class="history-stats">
+              <div class="h-mini-stat">
+                <strong>{{ item.openRate }}%</strong>
+                <span>Open</span>
+              </div>
+              <button class="btn-icon">📊</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="newsletter-sidebar">
+      <!-- Subscribers List -->
+      <div class="studio-card followers-card">
+        <div class="card-header">
+          <h3>Your Audience</h3>
+          <span class="badge">{{ subscribersCount() }}</span>
+        </div>
+        
+        <div class="followers-list-wrap">
+          <div *ngIf="isLoading()" class="loading-mini">
+            <div class="spinner-mini"></div>
+          </div>
+          
+          <div *ngIf="!isLoading() && subscribers().length === 0" class="empty-mini">
+            <p>No followers yet.</p>
+          </div>
+
+          <div *ngFor="let sub of subscribers().slice(0, 8)" class="follower-row">
+            <div class="follower-avatar">{{ sub.email.substring(0,1).toUpperCase() }}</div>
+            <div class="follower-email">{{ sub.email }}</div>
+            <div class="follower-status" [class.follower-status--active]="sub.status === 'ACTIVE'"></div>
+          </div>
+
+          <div class="sidebar-footer" *ngIf="subscribers().length > 8">
+            <a routerLink="/dashboard/subscribers">View all subscribers →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Growth Tip -->
+      <div class="growth-tip">
+        <div class="tip-icon">💡</div>
+        <h4>Pro Tip</h4>
+        <p>Newsletters with a personal note have a <strong>24% higher</strong> click-through rate. Don't just share links, share your thoughts!</p>
+      </div>
+    </aside>
+  </div>
+</section>

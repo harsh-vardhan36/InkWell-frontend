@@ -1,0 +1,79 @@
+<section class="my-posts">
+  <header class="page-header">
+    <div class="page-header__left">
+      <p class="page-header__eyebrow">Content Management</p>
+      <h1>My Posts</h1>
+      <p class="page-header__sub">Filter, edit, and manage your published stories and drafts.</p>
+    </div>
+    <div class="page-header__actions">
+      <a routerLink="/write" class="btn btn--primary">✍️ New Post</a>
+    </div>
+  </header>
+
+  <div class="content-area">
+    <div *ngIf="isLoading()" class="loading-state">
+      <div class="spinner"></div>
+      <p>Fetching your stories...</p>
+    </div>
+
+    <div *ngIf="error()" class="error-state">
+      <span class="error-icon">⚠️</span>
+      <p>{{ error() }}</p>
+      <button class="btn btn--secondary btn--sm" (click)="refresh()">Retry</button>
+    </div>
+
+    <div *ngIf="!isLoading() && !error() && posts().length === 0" class="empty-state">
+      <div class="empty-state__icon">📝</div>
+      <h2>No posts yet</h2>
+      <p>You haven't written any stories yet. Start your journey as an author today!</p>
+      <a routerLink="/write" class="btn btn--primary">Create your first post</a>
+    </div>
+
+    <div *ngIf="!isLoading() && !error() && posts().length > 0" class="posts-grid">
+      <table class="posts-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Stats</th>
+            <th>Last Updated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let post of posts()">
+            <td class="td-title">
+              <div class="post-info">
+                <span class="post-title">{{ post.title }}</span>
+                <span class="post-excerpt">{{ post.excerpt || 'No excerpt' }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="badge" [ngClass]="getStatusClass(post.status)">
+                {{ post.status }}
+              </span>
+            </td>
+            <td>
+              <div class="post-stats">
+                <span title="Views"><small>👀</small> {{ post.viewCount || 0 }}</span>
+                <span title="Likes">❤️ {{ post.likeCount || 0 }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="post-date">{{ post.updatedAt | date:'mediumDate' }}</span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <a [routerLink]="['/write', post.id]" class="action-btn" title="Edit">✏️</a>
+                <button (click)="togglePublish(post)" class="action-btn" [title]="post.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'">
+                  {{ post.status === 'PUBLISHED' ? '⏸️' : '🚀' }}
+                </button>
+                <button (click)="deletePost(post.id)" class="action-btn action-btn--danger" title="Delete">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

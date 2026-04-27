@@ -1,0 +1,84 @@
+<div class="subscribers-page">
+  <header class="page-header">
+    <div class="header-content">
+      <p class="eyebrow">Community</p>
+      <h1>Subscribers</h1>
+      <p class="subtitle">Manage your audience and track your growth.</p>
+    </div>
+    
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-value">{{ totalSubscribers() }}</span>
+        <span class="stat-label">Total Followers</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ activeSubscribers() }}</span>
+        <span class="stat-label">Active</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ pendingSubscribers() }}</span>
+        <span class="stat-label">Pending</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="content-card">
+    <div class="card-header">
+      <h2>Follower List</h2>
+      <button class="btn-refresh" (click)="fetchSubscribers()" [disabled]="isLoading()">
+        <span class="icon">🔄</span> Refresh
+      </button>
+    </div>
+
+    <div *ngIf="isLoading()" class="loading-state">
+      <div class="spinner"></div>
+      <p>Fetching your community...</p>
+    </div>
+
+    <div *ngIf="error()" class="error-state">
+      <span class="icon">⚠️</span>
+      <p>{{ error() }}</p>
+      <button class="btn btn--outline" (click)="fetchSubscribers()">Retry</button>
+    </div>
+
+    <div *ngIf="!isLoading() && !error() && subscribers().length === 0" class="empty-state">
+      <div class="empty-icon">👥</div>
+      <h3>No followers yet</h3>
+      <p>Share your stories to start building your audience!</p>
+    </div>
+
+    <div class="table-responsive" *ngIf="!isLoading() && subscribers().length > 0">
+      <table class="subscribers-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Status</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let sub of subscribers()">
+            <td>
+              <div class="user-cell">
+                <div class="avatar">{{ getInitials(sub.email) }}</div>
+                <div class="user-info">
+                  <span class="email">{{ sub.email }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="status-pill" [class]="'status-pill--' + sub.status.toLowerCase()">
+                {{ sub.status }}
+              </span>
+            </td>
+            <td>{{ formatDate(sub.createdAt) }}</td>
+            <td>
+              <button class="btn-icon" title="View Details">👁️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

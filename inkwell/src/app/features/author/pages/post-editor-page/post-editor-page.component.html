@@ -1,0 +1,170 @@
+<section class="editor-shell" *ngIf="!isLoading(); else editorLoading">
+  <header class="editor-topbar">
+    <div class="editor-topbar__intro">
+      <p class="editor-topbar__eyebrow">Publishing Studio</p>
+      <h1>{{ draftId() ? 'Edit story' : 'New story' }}</h1>
+      <p class="editor-topbar__copy">
+        Clean writing surface, clear publishing controls, and no oversized noise.
+      </p>
+    </div>
+
+    <div class="editor-topbar__meta">
+      <div class="meta-chip">
+        <span>Words</span>
+        <strong>{{ wordCount() }}</strong>
+      </div>
+      <div class="meta-chip">
+        <span>Read time</span>
+        <strong>{{ readTime() }} min</strong>
+      </div>
+      <div class="meta-chip">
+        <span>Mode</span>
+        <strong>{{ mode() === 'markdown' ? 'Markdown' : 'Rich text' }}</strong>
+      </div>
+    </div>
+  </header>
+
+  <div class="editor-layout">
+    <main class="editor-main">
+      <section class="editor-panel">
+        <div class="editor-toolbar">
+          <div class="editor-toolbar__group">
+            <button type="button" (click)="setMode('markdown')" [class.is-active]="mode() === 'markdown'">
+              Markdown
+            </button>
+            <button type="button" (click)="setMode('rich')" [class.is-active]="mode() === 'rich'">
+              Rich text
+            </button>
+          </div>
+
+          <div class="editor-toolbar__group">
+            <button type="button" (click)="insertSnippet('quote')">Quote</button>
+            <button type="button" (click)="insertSnippet('code')">Code</button>
+            <button type="button" disabled title="Media upload will be enabled after S3 setup">Image</button>
+          </div>
+        </div>
+
+        <form [formGroup]="form" class="editor-form">
+            <input
+              class="story-title"
+              type="text"
+              formControlName="title"
+              placeholder="Give your story a clear, strong title"
+            />
+            <div class="field-error" *ngIf="form.controls.title.touched && form.controls.title.errors?.['required']">Title is required</div>
+            <div class="field-error" *ngIf="form.controls.title.touched && form.controls.title.errors?.['minlength']">Title must be at least 8 characters</div>
+
+          <textarea
+            class="story-excerpt"
+            rows="3"
+            formControlName="excerpt"
+            placeholder="Write a short summary readers will see before opening the full post"
+          ></textarea>
+
+          <div class="story-settings">
+            <div class="field">
+              <label for="post-category">Category</label>
+              <select id="post-category" formControlName="categoryId">
+                <option value="">Choose a category</option>
+                <option *ngFor="let category of categories()" [value]="category.id">{{ category.name }}</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="post-tags">Tags</label>
+              <input id="post-tags" type="text" formControlName="tags" placeholder="technology, design, culture" />
+            </div>
+
+            <div class="field">
+              <label for="post-slug">Slug</label>
+              <input id="post-slug" type="text" formControlName="slug" placeholder="optional-custom-slug" />
+            </div>
+
+            <div class="field">
+              <label for="post-cover">Cover image URL</label>
+              <input id="post-cover" type="text" formControlName="coverImageUrl" placeholder="https://..." />
+            </div>
+          </div>
+
+          <div class="tag-strip" *ngIf="suggestedTags().length > 0">
+            <span>Suggested tags</span>
+            <button type="button" *ngFor="let tag of suggestedTags()" (click)="applySuggestedTag(tag)">
+              {{ tag }}
+            </button>
+          </div>
+
+          <textarea
+            class="story-body"
+            formControlName="content"
+            placeholder="Start writing here. Keep paragraphs readable, use headings where necessary, and let the piece breathe."
+          ></textarea>
+          <div class="field-error" *ngIf="form.controls.content.touched && form.controls.content.errors?.['required']">Content is required</div>
+          <div class="field-error" *ngIf="form.controls.content.touched && form.controls.content.errors?.['minlength']">Please write at least 40 characters for your story</div>
+        </form>
+
+        <div class="feedback feedback--success" *ngIf="saveMessage()">{{ saveMessage() }}</div>
+        <div class="feedback feedback--error" *ngIf="errorMessage()">{{ errorMessage() }}</div>
+
+        <div class="editor-actions">
+          <button type="button" class="btn btn--soft" (click)="saveDraft()" [disabled]="isSavingDraft() || isPublishing()">
+            <span *ngIf="!isSavingDraft()">Save draft</span>
+            <span *ngIf="isSavingDraft()">Saving...</span>
+          </button>
+
+          <button type="button" class="btn btn--primary" (click)="publish()" [disabled]="isPublishing() || isSavingDraft()">
+            <span *ngIf="!isPublishing()">Publish story</span>
+            <span *ngIf="isPublishing()">Publishing...</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <aside class="editor-sidebar">
+      <section class="sidebar-card">
+        <p class="sidebar-card__eyebrow">Live preview</p>
+        <div class="preview-card">
+          <div class="preview-card__meta">
+            <span class="preview-badge">{{ previewCategory() }}</span>
+            <span>{{ readTime() }} min read</span>
+          </div>
+          <h2>{{ previewTitle() }}</h2>
+          <p>{{ previewExcerpt() }}</p>
+          <div class="preview-tags" *ngIf="previewTags().length > 0">
+            <span *ngFor="let tag of previewTags()">#{{ tag }}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="sidebar-card">
+        <p class="sidebar-card__eyebrow">Publishing flow</p>
+        <div class="flow-list">
+          <div class="flow-row">
+            <span>Create draft</span>
+            <code>POST /posts</code>
+          </div>
+          <div class="flow-row">
+            <span>Update story</span>
+            <code>PUT /posts/:id</code>
+          </div>
+          <div class="flow-row">
+            <span>Publish story</span>
+            <code>PUT /posts/:id/publish</code>
+          </div>
+        </div>
+      </section>
+
+      <section class="sidebar-card">
+        <p class="sidebar-card__eyebrow">Deployment note</p>
+        <p class="sidebar-copy">{{ deploymentNote }}</p>
+      </section>
+    </aside>
+  </div>
+</section>
+
+<ng-template #editorLoading>
+  <div class="editor-loading">
+    <div class="loading-line loading-line--lg"></div>
+    <div class="loading-line"></div>
+    <div class="loading-line loading-line--sm"></div>
+  </div>
+</ng-template>

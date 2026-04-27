@@ -7,18 +7,24 @@ import {
   ElementRef,
   HostListener,
   OnDestroy,
+  OnInit,
   PLATFORM_ID,
   ViewChild,
   computed,
   inject,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink, Router } from '@angular/router';
+import { AuthSessionService } from '../../../auth/data-access/auth-session.service';
+import { AuthApiService, AuthUser } from '../../../auth/data-access/auth-api.service';
+import { PostApiService } from '../../../author/data-access/post-api.service';
+import { CommentApiService, Comment } from '../../data-access/comment-api.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-post-detail-page',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   template: `
 
     <!-- ══ READING PROGRESS BAR ══ -->
@@ -37,15 +43,15 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
           <span class="sticky-bar__title">{{ article().title }}</span>
         </div>
         <div class="sticky-bar__actions">
-          <button class="interact-pill" (click)="onClap()" [class.interact-pill--active]="hasClapped()">
+          <button class="interact-pill" (click)="onClap()" [class.interact-pill--active]="hasClapped()" [title]="isGuest() ? 'Sign in to clap' : 'Clap'">
             <span class="interact-pill__icon" [class.clap-burst]="clapAnimating()">
               {{ hasClapped() ? '❤️' : '♡' }}
             </span>
-            {{ article().claps + (hasClapped() ? 1 : 0) }}
+            {{ article().claps + (hasClapped() ? 1 : 0) }} {{ isGuest() ? '🔒' : '' }}
           </button>
           <button class="interact-pill">💬 {{ article().comments }}</button>
-          <button class="interact-pill" [class.interact-pill--active]="bookmarked()" (click)="bookmarked.update(v => !v)">
-            🔖
+          <button class="interact-pill" [class.interact-pill--active]="bookmarked()" (click)="onBookmark()" [title]="isGuest() ? 'Sign in to bookmark' : 'Bookmark'">
+            🔖 {{ isGuest() ? '🔒' : '' }}
           </button>
         </div>
       </div>
@@ -71,7 +77,9 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
         <!-- Author bar -->
         <div class="post-author-bar">
-          <div class="avatar avatar-lg" style="background:linear-gradient(135deg,#c9893a,#9a5f1a)">SR</div>
+          <div class="avatar avatar-lg" [style.background]="article().avatarGradient || 'linear-gradient(135deg,#c9893a,#9a5f1a)'">
+            {{ article().initials || 'A' }}
+          </div>
           <div class="post-author-bar__info">
             <div class="post-author-bar__name">{{ article().author }}</div>
             <div class="post-author-bar__meta">
@@ -84,20 +92,21 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
               class="interact-btn"
               (click)="onClap()"
               [class.interact-btn--active]="hasClapped()"
-              title="Clap for this article"
+              [title]="isGuest() ? 'Sign in to clap' : 'Clap for this article'"
             >
               <span [class.clap-burst]="clapAnimating()">
                 {{ hasClapped() ? '❤️' : '♡' }}
               </span>
-              {{ article().claps + (hasClapped() ? 1 : 0) }}
+              {{ article().claps + (hasClapped() ? 1 : 0) }} {{ isGuest() ? '🔒' : '' }}
             </button>
             <button class="interact-btn">💬 {{ article().comments }}</button>
             <button
               class="interact-btn"
               [class.interact-btn--active]="bookmarked()"
-              (click)="bookmarked.update(v => !v)"
+              (click)="onBookmark()"
+              [title]="isGuest() ? 'Sign in to bookmark' : 'Bookmark'"
             >
-              🔖
+              🔖 {{ isGuest() ? '🔒' : '' }}
             </button>
             <button class="interact-btn">↗ Share</button>
           </div>
@@ -114,41 +123,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
       </div>
 
       <!-- ── PROSE CONTENT ── -->
-      <div class="post-content" #contentEl>
-
-        <p>There is a particular kind of silence that comes just before dawn — the kind that feels almost solid, almost tactile. In that silence, something in us exhales. The performer steps offstage. The strategist puts down her clipboard. What remains is simply a person, breathing in a room.</p>
-
-        <p>I've been thinking about this silence a lot lately. About how rare it has become. About how many of us can no longer tolerate it.</p>
-
-        <h2>The Tyranny of Productivity</h2>
-
-        <p>We have built a culture around the idea that time is a resource — something to be optimized, leveraged, never wasted. The average knowledge worker checks their email <strong>74 times a day</strong>. The average smartphone user touches their device 2,617 times. We wake up reaching for our phones before we've even remembered who we are.</p>
-
-        <blockquote>
-          "The ability to be truly idle — not just inactive but genuinely, restfully at peace with not doing — has become a radical act."
-        </blockquote>
-
-        <p>The philosopher Blaise Pascal once wrote that <strong>all of humanity's problems stem from man's inability to sit quietly in a room alone</strong>. He wrote this in 1654. He had no idea what was coming.</p>
-
-        <h2>What Stillness Actually Does</h2>
-
-        <p>When neuroscientists study the brain during rest — during true rest, not sleep but what's called the "default mode network" — they find something remarkable: the brain doesn't power down. It becomes, in a sense, <em>more</em> active. It processes. It integrates. It makes the connections that conscious, goal-directed thinking cannot.</p>
-
-        <p>The shower epiphany is not a myth. The walk-in-the-park insight is not luck. They are the natural fruit of a mind that has been given the gift of unstructured time.</p>
-
-        <h3>A Simple Practice</h3>
-
-        <p>I want to suggest something that might sound almost laughably simple: <strong>sit somewhere quiet for ten minutes and do nothing</strong>. No phone. No podcast. No planning. Just sit.</p>
-
-        <p>The first time, it will feel unbearable. A kind of itch will spread across your mind. Your hand will instinctively reach for your phone. You'll start composing emails in your head, rehearsing arguments, planning dinner. This is normal. This is the addiction making itself known.</p>
-
-        <p>Keep sitting.</p>
-
-        <p>Around minute seven or eight — if you manage to stay — something shifts. The mental chatter doesn't stop, but it moves to the background. You begin to notice the room: the quality of light, the sound of your own breathing, the specific texture of this moment. You have arrived somewhere you haven't been in a while.</p>
-
-        <p>You have arrived at yourself.</p>
-
-      </div>
+      <div class="post-content" #contentEl [innerHTML]="article().content || article().body"></div>
 
       <!-- ── TAGS + ENGAGEMENT ── -->
       <div class="post-engagement">
@@ -176,8 +151,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
       <!-- ── AUTHOR CARD ── -->
       <div class="author-card">
-        <div class="author-card__avatar avatar avatar-2xl" style="background:linear-gradient(135deg,#c9893a,#9a5f1a)">
-          SR
+        <div class="author-card__avatar avatar avatar-2xl" [style.background]="article().avatarGradient || 'linear-gradient(135deg,#c9893a,#9a5f1a)'">
+          {{ article().initials || 'A' }}
         </div>
         <div class="author-card__body">
           <div class="author-card__eyebrow">Written by</div>
@@ -185,15 +160,15 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
           <p class="author-card__bio">{{ article().authorBio }}</p>
           <div class="author-card__stats">
             <div class="author-card__stat">
-              <span class="author-card__stat-num">2,841</span>
+              <span class="author-card__stat-num">{{ (article().followerCount || 2841) + (followingAuthor() ? 1 : 0) | number }}</span>
               <span class="author-card__stat-label">Followers</span>
             </div>
             <div class="author-card__stat">
-              <span class="author-card__stat-num">18</span>
+              <span class="author-card__stat-num">{{ article().storyCount || 18 }}</span>
               <span class="author-card__stat-label">Stories</span>
             </div>
             <div class="author-card__stat">
-              <span class="author-card__stat-num">47K</span>
+              <span class="author-card__stat-num">{{ article().readCount || '47K' }}</span>
               <span class="author-card__stat-label">Total reads</span>
             </div>
           </div>
@@ -201,20 +176,71 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
             <button
               class="follow-btn"
               [class.follow-btn--following]="followingAuthor()"
-              (click)="followingAuthor.update(v => !v)"
+              (click)="toggleFollow()"
+              [title]="isGuest() ? 'Sign in to follow' : ''"
             >
-              {{ followingAuthor() ? '✓ Following' : 'Follow' }}
+              {{ followingAuthor() ? '✓ Following' : (isGuest() ? 'Follow 🔒' : 'Follow') }}
             </button>
-            <a class="btn btn-ghost btn-sm" [routerLink]="['/profile']">View profile →</a>
+            <a class="btn btn-ghost btn-sm" [routerLink]="['/profile', article().authorId]">View profile →</a>
           </div>
         </div>
       </div>
+      
+      <!-- ── COMMENTS SECTION ── -->
+      <section class="comments-section" id="comments">
+        <div class="comments-header">
+          <h2 class="comments-title">Responses ({{ comments().length }})</h2>
+        </div>
+
+        <!-- Add Comment Form -->
+        <div class="comment-form" *ngIf="authSession.isAuthenticated(); else loginPrompt">
+          <textarea
+            class="comment-input"
+            placeholder="What are your thoughts?"
+            [(ngModel)]="newCommentContent"
+          ></textarea>
+          <div class="comment-form__actions">
+            <button class="btn btn-brand btn-sm" [disabled]="!newCommentContent.trim()" (click)="submitComment()">
+              Respond
+            </button>
+          </div>
+        </div>
+
+        <ng-template #loginPrompt>
+          <div class="login-prompt">
+            <p>Sign in to join the conversation.</p>
+            <a routerLink="/login" class="btn btn-outline btn-sm">Sign In</a>
+          </div>
+        </ng-template>
+
+        <!-- Comments List -->
+        <div class="comments-list">
+          <div class="comment-item" *ngFor="let comment of comments()">
+            <div class="comment-item__header">
+              <div class="avatar avatar-sm" style="background: var(--iw-bg-alt)">
+                {{ (comment.authorName || 'U').charAt(0).toUpperCase() }}
+              </div>
+              <div class="comment-item__meta">
+                <div class="comment-item__author">{{ comment.authorName || 'User' }}</div>
+                <div class="comment-item__date">{{ comment.createdAt | date:'shortDate' }}</div>
+              </div>
+            </div>
+            <div class="comment-item__body">
+              {{ comment.content }}
+            </div>
+            <div class="comment-item__footer">
+              <button class="interact-btn interact-btn--sm">♡ {{ comment.likes }}</button>
+              <button class="interact-btn interact-btn--sm">Reply</button>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <!-- ── MORE FROM AUTHOR ── -->
       <div class="more-section">
         <div class="more-section__header">
           <h2 class="more-section__title">More from {{ article().author }}</h2>
-          <a class="see-all" routerLink="/profile">See all →</a>
+          <a class="see-all" [routerLink]="['/profile', article().authorId]">See all →</a>
         </div>
         <div class="more-grid">
           <a
@@ -942,6 +968,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
       margin: 0;
       display: -webkit-box;
       -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
@@ -1000,6 +1027,101 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
         font-size: 3.2em;
       }
     }
+
+    /* ════════════════════════════════
+       COMMENTS SECTION
+    ════════════════════════════════ */
+    .comments-section {
+      margin-top: 48px;
+      padding-top: 48px;
+      border-top: 1px solid var(--iw-border);
+    }
+
+    .comments-title {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: var(--iw-ink);
+      margin-bottom: 24px;
+    }
+
+    .comment-form {
+      margin-bottom: 32px;
+      padding: 20px;
+      background: var(--iw-surface);
+      border: 1px solid var(--iw-border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--iw-shadow-sm);
+    }
+
+    .comment-input {
+      width: 100%;
+      min-height: 100px;
+      padding: 12px;
+      background: transparent;
+      border: none;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      color: var(--iw-ink);
+      resize: vertical;
+      outline: none;
+    }
+
+    .comment-form__actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--iw-border);
+    }
+
+    .login-prompt {
+      padding: 32px;
+      text-align: center;
+      background: var(--iw-bg-alt);
+      border-radius: var(--r-lg);
+      margin-bottom: 32px;
+    }
+
+    .comments-list {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .comment-item {
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--iw-border);
+    }
+
+    .comment-item__header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .comment-item__author {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--iw-ink);
+    }
+
+    .comment-item__date {
+      font-size: 0.75rem;
+      color: var(--iw-muted);
+    }
+
+    .comment-item__body {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: var(--iw-ink-2);
+      margin-bottom: 12px;
+    }
+
+    .interact-btn--sm {
+      padding: 4px 8px;
+      font-size: 0.7rem;
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -1007,6 +1129,11 @@ export class PostDetailPageComponent implements AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly platformId = inject(PLATFORM_ID);
+  protected readonly authSession = inject(AuthSessionService);
+  private readonly router = inject(Router);
+  private readonly postApiService = inject(PostApiService);
+  private readonly commentApiService = inject(CommentApiService);
+  private readonly authApiService = inject(AuthApiService);
 
   @ViewChild('headerEl') headerEl!: ElementRef<HTMLElement>;
   @ViewChild('articleEl') articleEl!: ElementRef<HTMLElement>;
@@ -1022,27 +1149,17 @@ export class PostDetailPageComponent implements AfterViewInit, OnDestroy {
 
   private clapTimer: ReturnType<typeof setTimeout> | null = null;
 
-  /* ── Article data derived from route ── */
-  protected readonly article = computed(() => {
-    const id = this.route.snapshot.paramMap.get('id') ?? 'quiet-art';
-
-    return {
-      id,
-      title: 'The Quiet Art of Doing Nothing: A Meditation on Stillness in an Age of Noise',
-      summary:
-        'We live in a civilization that worships productivity. Every idle moment is colonised by a notification, a podcast, a scroll. But what if stillness is not a luxury — it\'s a necessity?',
-      category: 'Philosophy',
-      readTime: '8 min read',
-      coverEmoji: '🌿',
-      author: 'Shreya Rao',
-      published: 'April 18, 2025',
-      claps: 248,
-      comments: 34,
-      authorBio:
-        'Shreya Rao writes at the intersection of philosophy, culture, and slow living. Based in Bengaluru. I believe good prose can change how we see the world.',
-      tags: ['Philosophy', 'Wellness', 'Mindfulness', 'Culture', 'Slow Living'],
-    };
+  /* ── Article data ── */
+  readonly article = signal<any>({
+    title: 'Loading...',
+    summary: 'Please wait...',
+    author: 'InkWell',
+    claps: 0,
+    comments: 0
   });
+
+  readonly comments = signal<Comment[]>([]);
+  newCommentContent = '';
 
   protected readonly relatedPosts = [
     {
@@ -1062,6 +1179,99 @@ export class PostDetailPageComponent implements AfterViewInit, OnDestroy {
       emoji: '🌀',
     },
   ];
+
+  ngOnInit(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      const id = this.route.snapshot.paramMap.get('id');
+      if (id) {
+        this.fetchPost(id);
+        this.fetchComments(id);
+      }
+    }
+  }
+
+  readonly isGuest = computed(() => !this.authSession.isAuthenticated());
+
+  private fetchPost(id: string): void {
+    this.postApiService.getPost(id).subscribe({
+      next: (post: any) => {
+        const authorName = post.authorName || 'InkWell Author';
+        const initials = authorName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+        
+        const authorId = post.authorId || 1;
+        this.article.set({
+          ...post,
+          author: authorName,
+          initials: initials,
+          authorId: authorId,
+          authorBio: 'InkWell featured author and storyteller.',
+          followerCount: 2841,
+          storyCount: 18,
+          readCount: '47K',
+          avatarGradient: `linear-gradient(135deg, hsl(${Math.random() * 360}, 70%, 50%), hsl(${Math.random() * 360}, 80%, 40%))`,
+          category: post.category?.name || 'General',
+          coverEmoji: post.category?.name === 'Technology' ? '💻' : 
+                      post.category?.name === 'Science' ? '🧪' : 
+                      post.category?.name === 'Philosophy' ? '🌀' : 
+                      post.category?.name === 'Culture' ? '🎨' : '📝',
+          published: new Date(post.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+          claps: post.likeCount || 0,
+          comments: 0 // Will be updated by comments fetch
+        });
+
+        // Fetch author profile for real bio
+        this.authApiService.getUserProfile(authorId).subscribe({
+          next: (user: AuthUser) => {
+            if (user.bio) {
+              this.article.update(a => ({ ...a, authorBio: user.bio! }));
+              this.cdr.markForCheck();
+            }
+          }
+        });
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  private fetchComments(postId: string): void {
+    this.commentApiService.getCommentsByPost(postId).subscribe({
+      next: (comments) => {
+        this.comments.set(comments);
+        this.article.update(a => ({ ...a, comments: comments.length }));
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  submitComment(): void {
+    if (!this.newCommentContent.trim()) return;
+
+    const user = this.authSession.user();
+    if (!user) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    const comment: Partial<Comment> = {
+      postId: this.article().id,
+      content: this.newCommentContent,
+      authorId: user.userId,
+      authorName: user.fullName || user.username || 'User'
+    };
+
+    this.commentApiService.addComment(comment).subscribe({
+      next: (newComment) => {
+        this.comments.update(list => [newComment, ...list]);
+        this.newCommentContent = '';
+        this.article.update(a => ({ ...a, comments: a.comments + 1 }));
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Failed to add comment:', err);
+        // Could add a toast notification here
+      }
+    });
+  }
 
   ngAfterViewInit(): void {
     if (isPlatformBrowser(this.platformId)) {
@@ -1092,6 +1302,10 @@ export class PostDetailPageComponent implements AfterViewInit, OnDestroy {
   }
 
   onClap(): void {
+    if (!this.authSession.isAuthenticated()) {
+      this.router.navigate(['/login']);
+      return;
+    }
     this.hasClapped.update(v => !v);
     this.clapAnimating.set(true);
     if (this.clapTimer) clearTimeout(this.clapTimer);
@@ -1099,5 +1313,21 @@ export class PostDetailPageComponent implements AfterViewInit, OnDestroy {
       this.clapAnimating.set(false);
       this.cdr.markForCheck();
     }, 450);
+  }
+
+  toggleFollow(): void {
+    if (this.isGuest()) {
+      void this.router.navigate(['/login']);
+      return;
+    }
+    this.followingAuthor.update(v => !v);
+  }
+
+  onBookmark(): void {
+    if (this.isGuest()) {
+      void this.router.navigate(['/login']);
+      return;
+    }
+    this.bookmarked.update(v => !v);
   }
 }

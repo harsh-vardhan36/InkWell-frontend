@@ -40,9 +40,33 @@ export interface AuthResponse {
   accessToken?: string;
   jwt?: string;
   jwtToken?: string;
+  refreshToken?: string;
+  message?: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  otp: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export type UserRole = 'READER' | 'AUTHOR' | 'ADMIN';
+
+export interface SocialLinks {
+  linkedin?: string;
+  instagram?: string;
+  github?: string;
+  twitter?: string;
+}
 
 export interface AuthUser {
   userId: number;
@@ -50,17 +74,30 @@ export interface AuthUser {
   email: string;
   fullName: string;
   role: UserRole;
+  plan: 'FREE' | 'PRO';
+  planExpiry?: string;
   bio?: string;
   avatarUrl?: string;
+  contactNumber?: string;
+  socialLinks?: SocialLinks;
   provider?: 'LOCAL' | 'GOOGLE' | 'GITHUB';
   isActive?: boolean;
   createdAt?: string;
 }
 
+export interface AdminUserStatusPayload {
+  enabled: boolean;
+  isActive?: boolean;
+}
+
+export interface AdminUserRolePayload {
+  role: UserRole;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
   private readonly http = inject(HttpClient);
-  private readonly authBaseCandidates = ['/auth'];
+  private readonly authBaseCandidates = ['/auth', '/api/auth'];
 
   login(payload: LoginRequest): Observable<AuthResponse> {
     const loginPayload = {
@@ -76,15 +113,11 @@ export class AuthApiService {
   }
 
   resendOtp(email: string): Observable<OtpResponse> {
-    // Backend doesn't have a dedicated resend endpoint yet, but register might re-send it
-    // if the user is unverified, or we can just throw an error for now.
-    return throwError(() => new Error('Resend OTP is not implemented on the backend yet.'));
+    return this.postWithFallback<OtpResponse>('/resend-otp', { email });
   }
 
   verifyOtp(payload: VerifyOtpRequest): Observable<VerifyOtpResponse> {
-    // Backend expects query parameters for /verify: ?email=...&otp=...
-    const url = `/verify?email=${encodeURIComponent(payload.email)}&otp=${encodeURIComponent(payload.otp)}`;
-    return this.postWithFallback<VerifyOtpResponse>(url, {});
+    return this.postWithFallback<VerifyOtpResponse>('/verify', payload);
   }
 
   extractTokenFromOtp(response: VerifyOtpResponse | null | undefined): string | null {
@@ -99,6 +132,84 @@ export class AuthApiService {
 
   getProfile(): Observable<AuthUser> {
     return this.getWithFallback<AuthUser>('/profile');
+  }
+
+  getUserProfile(userId: number | string): Observable<AuthUser> {
+    return this.getWithFallback<AuthUser>(`/${userId}`);
+  }
+
+  updateProfile(user: Partial<AuthUser>): Observable<AuthUser> {
+    return this.putWithFallback<AuthUser>('/profile', user);
+  }
+
+  changePassword(payload: ChangePasswordRequest): Observable<{ message?: string }> {
+    return this.putWithFallback<{ message?: string }>('/password', payload);
+  }
+
+  forgotPassword(payload: ForgotPasswordRequest): Observable<OtpResponse> {
+    return this.postWithFallback<OtpResponse>('/forgot-password', payload);
+  }
+
+  resetPassword(payload: ResetPasswordRequest): Observable<{ message?: string }> {
+    return this.postWithFallback<{ message?: string }>('/reset-password', {
+      email: payload.email,
+      otp: payload.otp,
+      token: payload.otp,
+      code: payload.otp,
+      verificationCode: payload.otp,
+      newPassword: payload.newPassword,
+      password: payload.newPassword,
+      confirmPassword: payload.newPassword,
+    });
+  }
+
+  logout(): Observable<{ message?: string }> {
+    return this.postWithFallback<{ message?: string }>('/logout', {});
+  }
+
+  becomeAuthor(email: string): Observable<OtpResponse> {
+    return this.postWithFallback<OtpResponse>('/become-author/request', { email });
+  }
+
+  verifyAuthorOtp(payload: VerifyOtpRequest): Observable<VerifyOtpResponse> {
+    return this.postWithFallback<VerifyOtpResponse>('/become-author/verify', payload);
+  }
+
+  refresh(): Observable<AuthResponse> {
+    return this.postWithFallback<AuthResponse>('/refresh', {});
+  }
+
+  requestDeactivateAccount(): Observable<{ message?: string }> {
+    return this.postWithFallback<{ message?: string }>('/deactivate/request', {});
+  }
+
+  verifyDeactivateAccount(otp: string): Observable<{ message?: string }> {
+    const url = `/deactivate/verify?otp=${encodeURIComponent(otp)}`;
+    return this.postWithFallback<{ message?: string }>(url, {});
+  }
+
+  getAdminUsers(): Observable<AuthUser[]> {
+    return this.getWithFallback<AuthUser[]>('/admin/users');
+  }
+
+  updateAdminUserRole(
+    userId: number | string,
+    payload: AdminUserRolePayload,
+  ): Observable<AuthUser> {
+    return this.putWithFallback<AuthUser>(`/admin/users/${userId}/role`, {
+      role: payload.role,
+      newRole: payload.role,
+    });
+  }
+
+  updateAdminUserStatus(
+    userId: number | string,
+    payload: AdminUserStatusPayload,
+  ): Observable<AuthUser> {
+    return this.putWithFallback<AuthUser>(`/admin/users/${userId}/status`, {
+      enabled: payload.enabled,
+      isActive: payload.enabled,
+    });
   }
 
   getOauthUrl(provider: 'google' | 'github'): string {
@@ -119,8 +230,16 @@ export class AuthApiService {
     return this.postAtIndex<T>(path, body, 0, []);
   }
 
+  private putWithFallback<T>(path: string, body: unknown): Observable<T> {
+    return this.putAtIndex<T>(path, body, 0, []);
+  }
+
   private getWithFallback<T>(path: string): Observable<T> {
     return this.getAtIndex<T>(path, 0, []);
+  }
+
+  private deleteWithFallback<T>(path: string): Observable<T> {
+    return this.deleteAtIndex<T>(path, 0, []);
   }
 
   private postAtIndex<T>(
@@ -157,6 +276,47 @@ export class AuthApiService {
 
         if (shouldRetry) {
           return this.getAtIndex<T>(path, index + 1, updatedAttempts);
+        }
+
+        return throwError(() => this.decorateIntegrationError(error, path, updatedAttempts));
+      }),
+    );
+  }
+
+  private putAtIndex<T>(
+    path: string,
+    body: unknown,
+    index: number,
+    attempts: string[],
+  ): Observable<T> {
+    const baseUrl = this.authBaseCandidates[index];
+    const url = `${baseUrl}${path}`;
+
+    return this.http.put<T>(url, body).pipe(
+      catchError((error) => {
+        const updatedAttempts = [...attempts, this.formatAttempt(url, error)];
+        const shouldRetry = this.shouldRetryWithNextBase(error, index);
+
+        if (shouldRetry) {
+          return this.putAtIndex<T>(path, body, index + 1, updatedAttempts);
+        }
+
+        return throwError(() => this.decorateIntegrationError(error, path, updatedAttempts));
+      }),
+    );
+  }
+
+  private deleteAtIndex<T>(path: string, index: number, attempts: string[]): Observable<T> {
+    const baseUrl = this.authBaseCandidates[index];
+    const url = `${baseUrl}${path}`;
+
+    return this.http.delete<T>(url).pipe(
+      catchError((error) => {
+        const updatedAttempts = [...attempts, this.formatAttempt(url, error)];
+        const shouldRetry = this.shouldRetryWithNextBase(error, index);
+
+        if (shouldRetry) {
+          return this.deleteAtIndex<T>(path, index + 1, updatedAttempts);
         }
 
         return throwError(() => this.decorateIntegrationError(error, path, updatedAttempts));

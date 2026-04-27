@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, switchMap } from 'rxjs';
 import {
   SocialLoginButtonsComponent,
@@ -19,6 +19,7 @@ import { AuthSessionService } from '../../data-access/auth-session.service';
 export class LoginPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly authApi = inject(AuthApiService);
   private readonly authSession = inject(AuthSessionService);
 
@@ -26,6 +27,7 @@ export class LoginPageComponent {
   readonly submitted = signal(false);
   readonly isSubmitting = signal(false);
   readonly submitError = signal<string | null>(null);
+  readonly isAdminMode = computed(() => this.route.snapshot.data['mode'] === 'admin');
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -86,4 +88,3 @@ export class LoginPageComponent {
   }
 
 }
-

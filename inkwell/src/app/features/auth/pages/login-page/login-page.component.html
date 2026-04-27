@@ -50,9 +50,13 @@
         <span class="auth-panel__logo-name">InkWell</span>
       </div>
 
-      <p class="auth-eyebrow">Welcome back</p>
-      <h1 class="auth-title">Sign in to continue</h1>
-      <p class="auth-subtitle">Access your feed, stories, and author dashboard.</p>
+      <p class="auth-eyebrow">{{ isAdminMode() ? 'Admin access' : 'Welcome back' }}</p>
+      <h1 class="auth-title">{{ isAdminMode() ? 'Sign in to the admin console' : 'Sign in to continue' }}</h1>
+      <p class="auth-subtitle">
+        {{ isAdminMode()
+          ? 'Use your admin account to manage readers, authors, and platform access.'
+          : 'Access your feed, stories, and author dashboard.' }}
+      </p>
 
       <!-- Social login -->
       <app-social-login-buttons />
@@ -86,7 +90,7 @@
         <div class="auth-field" [class.auth-field--error]="form.controls.password.touched && form.controls.password.invalid">
           <div class="auth-field__label-row">
             <label class="auth-field__label" for="login-password">Password</label>
-            <a href="/" (click)="$event.preventDefault()" class="auth-forgot">Forgot password?</a>
+            <a routerLink="/forgot-password" class="auth-forgot">Forgot password?</a>
           </div>
           <div class="auth-field__input-wrap">
             <span class="auth-field__icon">🔒</span>
@@ -132,7 +136,14 @@
       </form>
 
       <p class="auth-switch">
-        New to InkWell? <a routerLink="/register">Create a free account</a>
+        <ng-container *ngIf="!isAdminMode(); else adminFooter">
+          New to InkWell? <a routerLink="/register">Create a free account</a>
+          <span class="auth-switch__divider">·</span>
+          <a routerLink="/admin/login">Admin sign in</a>
+        </ng-container>
+        <ng-template #adminFooter>
+          Not an admin? <a routerLink="/login">Back to member sign in</a>
+        </ng-template>
       </p>
 
     </div>

@@ -13,8 +13,12 @@ import {
   inject,
   signal,
   PLATFORM_ID,
+  effect,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { PostApiService } from '../../../author/data-access/post-api.service';
+import { AuthSessionService } from '../../../auth/data-access/auth-session.service';
 
 
 type FilterTab = { id: string; label: string; };
@@ -42,8 +46,10 @@ interface SuggestedWriter {
   bio: string;
   gradient: string;
   following: boolean;
+  followers: number;
+  userId: string | number;
 }
-import { FormsModule } from '@angular/forms';
+
 @Component({
   selector: 'app-feed-page',
   standalone: true,
@@ -51,221 +57,232 @@ import { FormsModule } from '@angular/forms';
   template: `
 
     <!-- ══ PAGE HEADER ══ -->
-    <div class="feed-header">
-      <div class="feed-header__left">
-        <h1 class="feed-header__title">Explore</h1>
-        <p class="feed-header__sub">Stories from writers you follow and beyond</p>
-      </div>
-      <div class="feed-header__actions">
-        <!-- Search bar -->
-        <div class="search-bar" [class.search-bar--focused]="searchFocused()">
-          <span class="search-bar__icon">🔍</span>
-          <input
-            #searchInput
-            class="search-bar__input"
-            type="search"
-            placeholder="Search stories, writers…"
-            [(ngModel)]="searchQuery"
-            (focus)="searchFocused.set(true)"
-            (blur)="searchFocused.set(false)"
-            (ngModelChange)="onSearch($event)"
-          />
-          <kbd *ngIf="!searchFocused()" class="search-bar__kbd">⌘K</kbd>
+    <div class="container">
+      <div class="feed-header">
+        <div class="feed-header__left">
+          <h1 class="feed-header__title">Explore</h1>
+          <p class="feed-header__sub">Stories from writers you follow and beyond</p>
         </div>
-        <a class="btn btn-brand btn-sm" routerLink="/write">✍ Write</a>
+        <div class="feed-header__actions">
+          <!-- Search bar -->
+          <div class="search-bar" [class.search-bar--focused]="searchFocused()">
+            <span class="search-bar__icon">🔍</span>
+            <input
+              #searchInput
+              class="search-bar__input"
+              type="search"
+              placeholder="Search stories, writers…"
+              [ngModel]="searchQuery()"
+              (focus)="searchFocused.set(true)"
+              (blur)="searchFocused.set(false)"
+              (ngModelChange)="onSearch($event)"
+            />
+            <kbd *ngIf="!searchFocused()" class="search-bar__kbd">⌘K</kbd>
+          </div>
+          <a class="btn btn-brand btn-sm" routerLink="/write">✍ Write</a>
+        </div>
       </div>
     </div>
 
     <!-- ══ FILTER TABS ══ -->
     <div class="filter-row" #filterRow>
-      <div class="filter-tabs">
-        <button
-          *ngFor="let tab of filterTabs"
-          class="filter-tab"
-          [class.filter-tab--active]="activeTab() === tab.id"
-          (click)="setTab(tab.id)"
-        >
-          {{ tab.label }}
-        </button>
+      <div class="container">
+        <div class="filter-tabs">
+          <button
+            *ngFor="let tab of filterTabs()"
+            class="filter-tab"
+            [class.filter-tab--active]="activeTab() === tab.id"
+            (click)="setTab(tab.id)"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+        <div class="filter-row__divider"></div>
       </div>
-      <div class="filter-row__divider"></div>
     </div>
 
     <!-- ══ MAIN LAYOUT ══ -->
-    <div class="feed-layout">
+    <div class="container">
+      <div class="feed-layout">
 
-      <!-- ── FEED COLUMN ── -->
-      <div class="feed-col">
+        <!-- ── FEED COLUMN ── -->
+        <div class="feed-col">
 
-        <!-- Shimmer loading state -->
-        <ng-container *ngIf="isLoading()">
-          <div class="shimmer-card" *ngFor="let i of [1,2,3]">
-            <div class="shimmer-card__body">
-              <div class="shimmer-line shimmer-line--sm"></div>
-              <div class="shimmer-line shimmer-line--lg"></div>
-              <div class="shimmer-line shimmer-line--md"></div>
-              <div class="shimmer-line shimmer-line--sm"></div>
+          <!-- Shimmer loading state -->
+          <ng-container *ngIf="isLoading()">
+            <div class="shimmer-card" *ngFor="let i of [1,2,3]">
+              <div class="shimmer-card__body">
+                <div class="shimmer-line shimmer-line--sm"></div>
+                <div class="shimmer-line shimmer-line--lg"></div>
+                <div class="shimmer-line shimmer-line--md"></div>
+                <div class="shimmer-line shimmer-line--sm"></div>
+              </div>
+              <div class="shimmer-card__thumb"></div>
             </div>
-            <div class="shimmer-card__thumb"></div>
-          </div>
-        </ng-container>
-
-        <!-- Feed posts -->
-        <ng-container *ngIf="!isLoading()">
-
-          <ng-container *ngIf="filteredPosts().length > 0; else emptyState">
-            <article
-              *ngFor="let post of filteredPosts(); trackBy: trackById"
-              class="feed-post"
-              [routerLink]="['/blog', post.id]"
-            >
-              <!-- Author row -->
-              <div class="feed-post__author">
-                <div class="avatar avatar-sm" [style.background]="post.avatarGradient">
-                  {{ post.initials }}
-                </div>
-                <span class="feed-post__author-name">{{ post.author }}</span>
-                <span class="feed-post__dot">·</span>
-                <span class="feed-post__date">{{ post.published }}</span>
-              </div>
-
-              <!-- Content + thumb -->
-              <div class="feed-post__row">
-                <div class="feed-post__body">
-                  <h2 class="feed-post__title">{{ post.title }}</h2>
-                  <p class="feed-post__excerpt">{{ post.excerpt }}</p>
-                </div>
-                <div class="feed-post__thumb">
-                  <div class="feed-post__thumb-inner">{{ post.emoji }}</div>
-                </div>
-              </div>
-
-              <!-- Footer row -->
-              <div class="feed-post__footer" (click)="$event.stopPropagation()">
-                <span class="tag">{{ post.category }}</span>
-                <span class="read-time">{{ post.readTime }}</span>
-
-                <div class="feed-post__engagement">
-                  <button
-                    class="engage-btn"
-                    [class.engage-btn--active]="post.clapPending"
-                    (click)="clap(post)"
-                    title="Clap"
-                  >
-                    <span class="engage-btn__icon">{{ post.clapPending ? '❤️' : '♡' }}</span>
-                    <span>{{ post.claps }}</span>
-                  </button>
-                  <button class="engage-btn" title="Comments">
-                    <span class="engage-btn__icon">💬</span>
-                    <span>{{ post.comments }}</span>
-                  </button>
-                </div>
-
-                <button
-                  class="bookmark-btn"
-                  [class.bookmark-btn--saved]="post.bookmarked"
-                  (click)="toggleBookmark(post)"
-                  [title]="post.bookmarked ? 'Remove bookmark' : 'Bookmark'"
-                >
-                  {{ post.bookmarked ? '🔖' : '🔖' }}
-                  <span class="sr-only">{{ post.bookmarked ? 'Saved' : 'Save' }}</span>
-                </button>
-              </div>
-            </article>
           </ng-container>
 
-          <!-- Empty state -->
-          <ng-template #emptyState>
-            <div class="empty-state">
-              <div class="empty-state__icon">📭</div>
-              <h3 class="empty-state__title">No stories found</h3>
-              <p class="empty-state__sub">
-                Try a different filter, or
-                <a routerLink="/write">write one yourself</a>.
-              </p>
+          <!-- Feed posts -->
+          <ng-container *ngIf="!isLoading()">
+
+            <ng-container *ngIf="filteredPosts().length > 0; else emptyState">
+              <article
+                *ngFor="let post of filteredPosts(); trackBy: trackById"
+                class="feed-post"
+                [routerLink]="['/blog', post.id]"
+              >
+                <!-- Author row -->
+                <div class="feed-post__author">
+                  <div class="avatar avatar-sm" [style.background]="post.avatarGradient">
+                    {{ post.initials }}
+                  </div>
+                  <span class="feed-post__author-name">{{ post.author }}</span>
+                  <span class="feed-post__dot">·</span>
+                  <span class="feed-post__date">{{ post.published }}</span>
+                </div>
+
+                <!-- Content + thumb -->
+                <div class="feed-post__row">
+                  <div class="feed-post__body">
+                    <h2 class="feed-post__title">{{ post.title }}</h2>
+                    <p class="feed-post__excerpt">{{ post.excerpt }}</p>
+                  </div>
+                  <div class="feed-post__thumb">
+                    <div class="feed-post__thumb-inner">{{ post.emoji }}</div>
+                  </div>
+                </div>
+
+                <!-- Footer row -->
+                <div class="feed-post__footer" (click)="$event.stopPropagation()">
+                  <span class="tag">{{ post.category }}</span>
+                  <span class="read-time">{{ post.readTime }}</span>
+
+                  <div class="feed-post__engagement">
+                    <button
+                      class="engage-btn"
+                      [class.engage-btn--active]="post.clapPending"
+                      (click)="clap(post)"
+                      [title]="isGuest() ? 'Sign in to clap' : 'Clap'"
+                    >
+                      <span class="engage-btn__icon">{{ post.clapPending ? '❤️' : '♡' }}</span>
+                      <span>{{ post.claps }} {{ isGuest() ? '🔒' : '' }}</span>
+                    </button>
+                    <button class="engage-btn" title="Comments">
+                      <span class="engage-btn__icon">💬</span>
+                      <span>{{ post.comments }} {{ isGuest() ? '🔒' : '' }}</span>
+                    </button>
+                  </div>
+
+                  <button
+                    class="bookmark-btn"
+                    [class.bookmark-btn--saved]="post.bookmarked"
+                    (click)="toggleBookmark(post)"
+                    [title]="isGuest() ? 'Sign in to bookmark' : (post.bookmarked ? 'Remove bookmark' : 'Bookmark')"
+                  >
+                    {{ post.bookmarked ? '🔖' : '🔖' }}
+                    <span class="sr-only">{{ post.bookmarked ? 'Saved' : 'Save' }}</span>
+                    <span *ngIf="isGuest()" style="font-size: 0.6rem; position: absolute; bottom: -2px; right: -2px;">🔒</span>
+                  </button>
+                </div>
+              </article>
+            </ng-container>
+
+            <!-- Empty state -->
+            <ng-template #emptyState>
+              <div class="empty-state">
+                <div class="empty-state__icon">📭</div>
+                <h3 class="empty-state__title">No stories found</h3>
+                <p class="empty-state__sub">
+                  Try a different filter, or
+                  <a routerLink="/write">write one yourself</a>.
+                </p>
+              </div>
+            </ng-template>
+
+            <!-- Load more -->
+            <div class="load-more" *ngIf="filteredPosts().length > 0 && !searchQuery">
+              <button class="load-more__btn" (click)="loadMore()" [disabled]="isLoadingMore()">
+                <span *ngIf="!isLoadingMore()">Load more stories</span>
+                <span *ngIf="isLoadingMore()" class="load-more__spinner"></span>
+              </button>
             </div>
-          </ng-template>
 
-          <!-- Load more -->
-          <div class="load-more" *ngIf="filteredPosts().length > 0 && !searchQuery">
-            <button class="load-more__btn" (click)="loadMore()" [disabled]="isLoadingMore()">
-              <span *ngIf="!isLoadingMore()">Load more stories</span>
-              <span *ngIf="isLoadingMore()" class="load-more__spinner"></span>
-            </button>
-          </div>
+          </ng-container>
+        </div>
 
-        </ng-container>
-      </div>
+        <!-- ── SIDEBAR ── -->
+        <aside class="feed-sidebar">
 
-      <!-- ── SIDEBAR ── -->
-      <aside class="feed-sidebar">
-
-        <!-- Staff picks -->
-        <div class="sidebar-card">
-          <div class="sidebar-card__title">⭐ Staff Picks</div>
-          <div
-            class="staff-pick"
-            *ngFor="let pick of staffPicks; let i = index"
-          >
-            <div class="staff-pick__num">{{ (i + 1).toString().padStart(2,'0') }}</div>
-            <div class="staff-pick__body">
-              <a class="staff-pick__title" [routerLink]="['/blog', pick.id]">{{ pick.title }}</a>
-              <div class="staff-pick__meta">
-                <div class="avatar avatar-sm" [style.background]="pick.gradient">{{ pick.initials }}</div>
-                <span>{{ pick.author }}</span>
-                <span class="read-time">{{ pick.readTime }}</span>
+          <!-- Staff picks -->
+          <div class="sidebar-card">
+            <div class="sidebar-card__title">⭐ Staff Picks</div>
+            <div
+              class="staff-pick"
+              *ngFor="let pick of staffPicks; let i = index"
+            >
+              <div class="staff-pick__num">{{ (i + 1).toString().padStart(2,'0') }}</div>
+              <div class="staff-pick__body">
+                <a class="staff-pick__title" [routerLink]="['/blog', pick.id]">{{ pick.title }}</a>
+                <div class="staff-pick__meta">
+                  <div class="avatar avatar-sm" [style.background]="pick.gradient">{{ pick.initials }}</div>
+                  <span>{{ pick.author }}</span>
+                  <span class="read-time">{{ pick.readTime }}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Suggested writers -->
-        <div class="sidebar-card">
-          <div class="sidebar-card__title">✦ Writers to Follow</div>
-          <div class="writer-row" *ngFor="let writer of suggestedWriters()">
-            <div class="avatar avatar-md" [style.background]="writer.gradient">
-              {{ writer.initials }}
+          <!-- Suggested writers -->
+          <div class="sidebar-card">
+            <div class="sidebar-card__title">✦ Writers to Follow</div>
+            <div class="writer-row" *ngFor="let writer of suggestedWriters()">
+              <div class="avatar avatar-md" [style.background]="writer.gradient">
+                {{ writer.initials }}
+              </div>
+              <div class="writer-row__info">
+                <a [routerLink]="['/profile', writer.userId]" class="writer-row__name">{{ writer.name }}</a>
+                <div class="writer-row__bio">
+                  {{ writer.bio }}
+                  <span class="writer-row__followers">· {{ (writer.followers + (writer.following ? 1 : 0)) | number }} followers</span>
+                </div>
+              </div>
+              <button
+                class="follow-btn"
+                [class.follow-btn--following]="writer.following"
+                (click)="toggleFollow(writer)"
+                [title]="isGuest() ? 'Sign in to follow' : ''"
+              >
+                {{ writer.following ? '✓ Following' : (isGuest() ? 'Follow 🔒' : 'Follow') }}
+              </button>
             </div>
-            <div class="writer-row__info">
-              <div class="writer-row__name">{{ writer.name }}</div>
-              <div class="writer-row__bio">{{ writer.bio }}</div>
-            </div>
-            <button
-              class="follow-btn"
-              [class.follow-btn--following]="writer.following"
-              (click)="toggleFollow(writer)"
-            >
-              {{ writer.following ? '✓ Following' : 'Follow' }}
-            </button>
           </div>
-        </div>
 
-        <!-- Topics -->
-        <div class="sidebar-card">
-          <div class="sidebar-card__title">🏷 Recommended Topics</div>
-          <div class="sidebar-topics">
-            <a
-              *ngFor="let topic of sidebarTopics"
-              class="sidebar-topic"
-              routerLink="/feed"
-              (click)="setTab('for-you')"
-            >
-              {{ topic }}
+          <!-- Topics -->
+          <div class="sidebar-card">
+            <div class="sidebar-card__title">🏷 Recommended Topics</div>
+            <div class="sidebar-topics">
+              <a
+                *ngFor="let topic of sidebarTopics"
+                class="sidebar-topic"
+                routerLink="/feed"
+                (click)="setTab('for-you')"
+              >
+                {{ topic }}
+              </a>
+            </div>
+          </div>
+
+          <!-- Reading list nudge -->
+          <div class="sidebar-card sidebar-card--brand">
+            <p class="sidebar-card__brand-text">
+              Your reading list is empty. Save stories with 🔖 to read later.
+            </p>
+            <a routerLink="/dashboard" class="btn btn-white btn-sm" style="margin-top:14px;display:inline-flex">
+              Go to dashboard →
             </a>
           </div>
-        </div>
 
-        <!-- Reading list nudge -->
-        <div class="sidebar-card sidebar-card--brand">
-          <p class="sidebar-card__brand-text">
-            Your reading list is empty. Save stories with 🔖 to read later.
-          </p>
-          <a routerLink="/dashboard" class="btn btn-white btn-sm" style="margin-top:14px;display:inline-flex">
-            Go to dashboard →
-          </a>
-        </div>
-
-      </aside>
+        </aside>
+      </div>
     </div>
   `,
   styles: [`
@@ -494,13 +511,10 @@ import { FormsModule } from '@angular/forms';
       cursor: pointer;
       transition: var(--trans);
       animation: fadeUp 0.4s ease both;
+      background: transparent;
     }
 
     .feed-post:first-child { padding-top: 0; }
-
-    .feed-post:hover {
-      background: transparent;
-    }
 
     .feed-post:hover .feed-post__title {
       color: var(--iw-brand);
@@ -554,6 +568,7 @@ import { FormsModule } from '@angular/forms';
       margin: 0;
       display: -webkit-box;
       -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
@@ -573,7 +588,7 @@ import { FormsModule } from '@angular/forms';
       align-items: center;
       justify-content: center;
       font-size: 2rem;
-      background: linear-gradient(135deg, var(--iw-brand-soft), var(--iw-bg-alt));
+      background: var(--iw-bg-deep);
       transition: transform 0.35s ease;
     }
 
@@ -770,7 +785,8 @@ import { FormsModule } from '@angular/forms';
 
     .sidebar-card__brand-text {
       font-size: 0.875rem;
-      color: rgba(255,255,255,0.80);
+      color: #fff;
+      opacity: 0.9;
       line-height: 1.6;
       margin: 0;
     }
@@ -978,135 +994,14 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly isLoading      = signal(true);
   readonly isLoadingMore  = signal(false);
   readonly searchFocused  = signal(false);
-  searchQuery = '';
+  readonly searchQuery    = signal('');
 
   /* ── Data ── */
-  private readonly allPosts = signal<FeedPost[]>([
-    {
-      id: 'quiet-art',
-      category: 'Philosophy',
-      readTime: '8 min read',
-      title: 'The Quiet Art of Doing Nothing: A Meditation on Stillness in an Age of Noise',
-      excerpt: "We live in a civilization that worships productivity. Every idle moment is colonised by a notification, a podcast, a scroll. But what if stillness is not a luxury — it's a necessity?",
-      author: 'Shreya Rao',
-      initials: 'SR',
-      avatarGradient: 'linear-gradient(135deg,#c9893a,#9a5f1a)',
-      published: '2 hours ago',
-      claps: 248,
-      comments: 34,
-      emoji: '🌿',
-      bookmarked: false,
-    },
-    {
-      id: 'ai-urban',
-      category: 'Technology',
-      readTime: '5 min read',
-      title: 'How AI is Quietly Rewriting the Rules of Urban Planning',
-      excerpt: 'From traffic flow to zoning laws, algorithms are increasingly making the decisions that shape our cities. The humans nominally in charge are often just rubber-stamping AI recommendations.',
-      author: 'Arjun Kulkarni',
-      initials: 'AK',
-      avatarGradient: 'linear-gradient(135deg,#3d78d8,#1a3a7a)',
-      published: 'Apr 17',
-      claps: 189,
-      comments: 21,
-      emoji: '🏙️',
-      bookmarked: false,
-    },
-    {
-      id: 'social-media-90',
-      category: 'Wellness',
-      readTime: '4 min read',
-      title: 'I Quit Social Media for 90 Days — Here\'s What Actually Changed',
-      excerpt: 'The first week was agony. By week four, something unexpected happened: I started to remember who I was before the algorithm.',
-      author: 'Nandita K.',
-      initials: 'NK',
-      avatarGradient: 'linear-gradient(135deg,#2a8a6a,#0f3d28)',
-      published: 'Apr 14',
-      claps: 512,
-      comments: 67,
-      emoji: '🧘',
-      bookmarked: true,
-    },
-    {
-      id: 'middle-manager',
-      category: 'Business',
-      readTime: '7 min read',
-      title: 'The Silent Collapse of the Middle Manager',
-      excerpt: 'AI didn\'t eliminate the front-line worker first. It gutted the layer that was supposed to be safe. The corporate middle is hollowing out faster than anyone predicted.',
-      author: 'Rahul Verma',
-      initials: 'RV',
-      avatarGradient: 'linear-gradient(135deg,#8a3d2a,#4a1a10)',
-      published: 'Apr 13',
-      claps: 391,
-      comments: 88,
-      emoji: '⚡',
-      bookmarked: false,
-    },
-    {
-      id: 'dark-matter',
-      category: 'Science',
-      readTime: '9 min read',
-      title: 'We\'ve Been Wrong About Dark Matter. New Evidence Rewrites Cosmology',
-      excerpt: 'A series of telescope observations have produced results that challenge the dominant model of what holds galaxies together.',
-      author: 'Dr. Divya S.',
-      initials: 'DS',
-      avatarGradient: 'linear-gradient(135deg,#2a4a8a,#0f1e50)',
-      published: 'Apr 12',
-      claps: 274,
-      comments: 45,
-      emoji: '🌌',
-      bookmarked: false,
-    },
-    {
-      id: 'gen-z-craft',
-      category: 'Culture',
-      readTime: '6 min read',
-      title: 'The Renaissance of Handmade: Why Gen Z is Choosing Craft Over Code',
-      excerpt: 'In a world of digital everything, a growing number of young people are turning to pottery, weaving, and woodwork as antidotes to screen fatigue.',
-      author: 'Priya Mehta',
-      initials: 'PM',
-      avatarGradient: 'linear-gradient(135deg,#7c3d8a,#3d1a50)',
-      published: 'Apr 11',
-      claps: 218,
-      comments: 29,
-      emoji: '🎨',
-      bookmarked: false,
-    },
-    {
-      id: 'slow-reading',
-      category: 'Writing',
-      readTime: '5 min read',
-      title: 'The Joy of Slow Reading in a Fast World',
-      excerpt: 'On savouring pages instead of skimming headlines, and what we lose when we stop giving books the time they deserve.',
-      author: 'Shreya Rao',
-      initials: 'SR',
-      avatarGradient: 'linear-gradient(135deg,#c9893a,#9a5f1a)',
-      published: 'Mar 30',
-      claps: 187,
-      comments: 22,
-      emoji: '📚',
-      bookmarked: false,
-    },
-    {
-      id: 'newsletter-loops',
-      category: 'Business',
-      readTime: '5 min read',
-      title: 'Newsletter Loops That Make Every Article More Valuable Over Time',
-      excerpt: 'A lightweight loop between posts, subscriptions, and follow-up emails that compounds audience growth without burning out.',
-      author: 'Ava Collins',
-      initials: 'AC',
-      avatarGradient: 'linear-gradient(135deg,#d4644a,#8a2a18)',
-      published: 'Mar 28',
-      claps: 163,
-      comments: 17,
-      emoji: '✉️',
-      bookmarked: false,
-    },
-  ]);
+  private readonly allPosts = signal<FeedPost[]>([]);
 
   readonly filteredPosts = computed(() => {
     const tab   = this.activeTab();
-    const query = this.searchQuery.toLowerCase().trim();
+    const query = this.searchQuery().toLowerCase().trim();
     let posts   = this.allPosts();
 
     /* Tab filter */
@@ -1127,10 +1022,10 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
     /* Search filter */
     if (query) {
       posts = posts.filter(p =>
-        p.title.toLowerCase().includes(query) ||
-        p.excerpt.toLowerCase().includes(query) ||
-        p.author.toLowerCase().includes(query) ||
-        p.category.toLowerCase().includes(query)
+        (p.title || '').toLowerCase().includes(query) ||
+        (p.excerpt || '').toLowerCase().includes(query) ||
+        (p.author || '').toLowerCase().includes(query) ||
+        (p.category || '').toLowerCase().includes(query)
       );
     }
 
@@ -1138,10 +1033,10 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
   });
 
   readonly suggestedWriters = signal<SuggestedWriter[]>([
-    { name: 'Priya Mehta',  initials: 'PM', bio: 'Culture & Design',  gradient: 'linear-gradient(135deg,#7c3d8a,#3d1a50)', following: false },
-    { name: 'Jatin Kumar',  initials: 'JK', bio: 'Tech & Society',    gradient: 'linear-gradient(135deg,#2a8a6a,#0f3d28)', following: false },
-    { name: 'Ananya Lal',   initials: 'AL', bio: 'Fiction & Poetry',  gradient: 'linear-gradient(135deg,#c9893a,#9a5f1a)', following: false },
-    { name: 'Devika Shah',  initials: 'DV', bio: 'Product & Growth',  gradient: 'linear-gradient(135deg,#3d78d8,#1a3a7a)', following: true  },
+    { userId: 1, name: 'Priya Mehta',  initials: 'PM', bio: 'Culture & Design',  gradient: 'linear-gradient(135deg,#7c3d8a,#3d1a50)', following: false, followers: 2410 },
+    { userId: 2, name: 'Jatin Kumar',  initials: 'JK', bio: 'Tech & Society',    gradient: 'linear-gradient(135deg,#2a8a6a,#0f3d28)', following: false, followers: 1850 },
+    { userId: 3, name: 'Ananya Lal',   initials: 'AL', bio: 'Fiction & Poetry',  gradient: 'linear-gradient(135deg,#c9893a,#9a5f1a)', following: false, followers: 3200 },
+    { userId: 4, name: 'Devika Shah',  initials: 'DV', bio: 'Product & Growth',  gradient: 'linear-gradient(135deg,#3d78d8,#1a3a7a)', following: true,  followers: 4700 },
   ]);
 
   readonly staffPicks = [
@@ -1156,17 +1051,24 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
     '🎨 Design', '🌍 Culture', '🧪 Science', '📈 Business',
   ];
 
-  readonly filterTabs: FilterTab[] = [
-    { id: 'for-you',     label: 'For you'    },
-    { id: 'following',   label: 'Following'  },
-    { id: 'technology',  label: 'Technology' },
-    { id: 'philosophy',  label: 'Philosophy' },
-    { id: 'science',     label: 'Science'    },
-    { id: 'culture',     label: 'Culture'    },
-    { id: 'business',    label: 'Business'   },
-    { id: 'wellness',    label: 'Wellness'   },
-    { id: 'writing',     label: 'Writing'    },
-  ];
+  readonly filterTabs = computed(() => {
+    const baseTabs = [
+      { id: 'for-you',    label: 'For you' },
+      { id: 'following',  label: 'Following' },
+      { id: 'technology', label: 'Technology' },
+      { id: 'philosophy', label: 'Philosophy' },
+      { id: 'science',    label: 'Science' },
+      { id: 'culture',    label: 'Culture' },
+      { id: 'business',   label: 'Business' },
+      { id: 'wellness',   label: 'Wellness' },
+      { id: 'writing',    label: 'Writing' },
+    ];
+    
+    if (this.isGuest()) {
+      return baseTabs.filter(t => t.id !== 'following');
+    }
+    return baseTabs;
+  });
 
   /* ── Keyboard shortcut: ⌘K / Ctrl+K to focus search ── */
   @HostListener('window:keydown', ['$event'])
@@ -1178,14 +1080,45 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly postApiService = inject(PostApiService);
+  private readonly authSession = inject(AuthSessionService);
+  private readonly router = inject(Router);
+  readonly isGuest = computed(() => !this.authSession.isAuthenticated());
 
   ngOnInit(): void {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
 
-    /* Simulate async data load */
-    setTimeout(() => this.isLoading.set(false), 800);
+    this.fetchPosts();
+  }
+
+  private fetchPosts(): void {
+    this.isLoading.set(true);
+    this.postApiService.listPosts().subscribe({
+      next: (posts: any) => {
+        const mappedPosts: FeedPost[] = (posts as any[]).map(p => ({
+          id: p.id.toString(),
+          category: p.category?.name || 'General',
+          readTime: '5 min read', // Mock for now or calculate from content
+          title: p.title,
+          excerpt: p.excerpt || p.summary || 'No excerpt available',
+          author: p.authorName || p.author?.fullName || p.author?.username || 'InkWell Author',
+          initials: (p.authorName || p.author?.fullName || p.author?.username || 'IA').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+          avatarGradient: 'linear-gradient(135deg,#c9893a,#9a5f1a)',
+          published: new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          claps: p.likeCount || 0,
+          comments: 0, // Need to fetch count separately or include in API
+          emoji: '📝',
+          bookmarked: false,
+        }));
+        this.allPosts.set(mappedPosts);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.isLoading.set(false);
+      }
+    });
   }
 
 
@@ -1199,16 +1132,20 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   setTab(id: string): void {
     this.activeTab.set(id);
-    this.searchQuery = '';
+    this.searchQuery.set('');
   }
 
-  onSearch(_query: string): void {
-    /* computed() reacts to searchQuery change automatically via template binding */
+  onSearch(query: string): void {
+    this.searchQuery.set(query);
   }
 
   clap(post: FeedPost): void {
-    this.allPosts.update(posts =>
-      posts.map(p =>
+    if (this.isGuest()) {
+      void this.router.navigate(['/login']);
+      return;
+    }
+    this.allPosts.update((posts: FeedPost[]) =>
+      posts.map((p: FeedPost) =>
         p.id === post.id
           ? { ...p, clapPending: !p.clapPending, claps: p.clapPending ? p.claps - 1 : p.claps + 1 }
           : p
@@ -1217,14 +1154,22 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   toggleBookmark(post: FeedPost): void {
-    this.allPosts.update(posts =>
-      posts.map(p => p.id === post.id ? { ...p, bookmarked: !p.bookmarked } : p)
+    if (this.isGuest()) {
+      void this.router.navigate(['/login']);
+      return;
+    }
+    this.allPosts.update((posts: FeedPost[]) =>
+      posts.map((p: FeedPost) => p.id === post.id ? { ...p, bookmarked: !p.bookmarked } : p)
     );
   }
 
   toggleFollow(writer: SuggestedWriter): void {
-    this.suggestedWriters.update(list =>
-      list.map(w => w.name === writer.name ? { ...w, following: !w.following } : w)
+    if (this.isGuest()) {
+      void this.router.navigate(['/login']);
+      return;
+    }
+    this.suggestedWriters.update((list: SuggestedWriter[]) =>
+      list.map((w: SuggestedWriter) => w.name === writer.name ? { ...w, following: !w.following } : w)
     );
   }
 

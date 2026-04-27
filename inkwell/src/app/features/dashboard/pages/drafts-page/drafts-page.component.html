@@ -1,0 +1,51 @@
+<div class="drafts-page">
+  <header class="page-header">
+    <div class="header-content">
+      <p class="eyebrow">Work in Progress</p>
+      <h1>Drafts</h1>
+      <p class="subtitle">Pick up where you left off. Your ideas are waiting to be polished.</p>
+    </div>
+    <div class="header-actions">
+      <a routerLink="/write" class="btn btn--primary">✍️ New Draft</a>
+    </div>
+  </header>
+
+  <div class="drafts-container">
+    <div *ngIf="isLoading()" class="loading-state">
+      <div class="spinner"></div>
+      <p>Finding your drafts...</p>
+    </div>
+
+    <div *ngIf="!isLoading() && drafts().length === 0" class="empty-state">
+      <div class="empty-icon">📁</div>
+      <h2>Clean slate</h2>
+      <p>You don't have any drafts right now. Ready to start something new?</p>
+      <a routerLink="/write" class="btn btn--outline">Start Writing</a>
+    </div>
+
+    <div class="draft-grid" *ngIf="!isLoading() && drafts().length > 0">
+      <div *ngFor="let draft of drafts()" class="draft-card">
+        <div class="draft-preview">
+          <span class="preview-icon">✍</span>
+        </div>
+        <div class="draft-body">
+          <div class="draft-meta">
+            <span class="draft-date">Last saved {{ formatDate(draft.updatedAt) }}</span>
+          </div>
+          <h3 class="draft-title">{{ draft.title || '(Untitled Draft)' }}</h3>
+          <p class="draft-excerpt">{{ draft.excerpt || 'No summary yet. Click edit to start writing.' }}</p>
+          
+          <div class="draft-footer">
+            <div class="word-count">
+              <span>~{{ (draft.content?.length / 5) | number:'1.0-0' }} words</span>
+            </div>
+            <div class="draft-actions">
+              <a [routerLink]="['/write', draft.id]" class="btn-action" title="Edit">✏️</a>
+              <button (click)="deletePost(draft.id)" class="btn-action btn-action--danger" title="Delete">🗑</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

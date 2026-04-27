@@ -1,0 +1,323 @@
+<div class="profile-page">
+  <header class="hero">
+    <div class="hero__glow hero__glow--left"></div>
+    <div class="hero__glow hero__glow--right"></div>
+
+    <div class="hero__content">
+      <div class="hero__identity">
+        <div class="avatar" [style.background-image]="avatarUrl() ? 'url(' + avatarUrl() + ')' : ''">
+          <span *ngIf="!avatarUrl()">{{ userInitials() }}</span>
+        </div>
+
+        <div>
+          <p class="hero__eyebrow">Account Center</p>
+          <h1>{{ userName() }}</h1>
+          <p class="hero__meta">{{ userRole() }} · {{ userPlan() }} Member</p>
+        </div>
+      </div>
+
+      <div class="hero__stats">
+        <div class="stat-pill">
+          <span class="stat-pill__label">Profile strength</span>
+          <strong>{{ profileCompleteness() }}%</strong>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill__label">Primary email</span>
+          <strong>{{ userEmail() || 'Not available' }}</strong>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout" *ngIf="!isLoading(); else loadingState">
+    <main class="main">
+      <section class="card">
+        <div class="card__head" *ngIf="isOwnProfile()">
+          <div>
+            <p class="card__eyebrow">Performance</p>
+            <h2>Analytics Overview</h2>
+          </div>
+          <a routerLink="/dashboard/analytics" class="card__link">View Full Report</a>
+        </div>
+
+        <div class="analytics-preview" *ngIf="isOwnProfile()" [class.analytics-preview--locked]="userPlan() === 'FREE'" (click)="userPlan() === 'FREE' ? null : null">
+          <div class="analytics-grid">
+            <div class="analytics-card">
+              <span class="analytics-card__label">Total Views</span>
+              <strong class="analytics-card__value">12.4K</strong>
+              <div class="analytics-card__trend positive">+12%</div>
+            </div>
+            <div class="analytics-card">
+              <span class="analytics-card__label">Total Claps</span>
+              <strong class="analytics-card__value">1,842</strong>
+              <div class="analytics-card__trend positive">+5%</div>
+            </div>
+            <div class="analytics-card">
+              <span class="analytics-card__label">Comments</span>
+              <strong class="analytics-card__value">342</strong>
+              <div class="analytics-card__trend neutral">0%</div>
+            </div>
+          </div>
+
+          <!-- Lock Overlay -->
+          <div class="analytics-lock" *ngIf="userPlan() === 'FREE'" routerLink="/dashboard/analytics">
+             <div class="analytics-lock__content">
+                <span class="analytics-lock__icon">🔒</span>
+                <p>Click to unlock advanced analytics</p>
+             </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__head">
+          <div>
+            <p class="card__eyebrow">Public identity</p>
+            <h2>Personal information</h2>
+          </div>
+          <a routerLink="/pricing" class="card__link" *ngIf="userPlan() === 'FREE'">See Pro plans</a>
+        </div>
+
+        <!-- View Mode (Others) -->
+        <div *ngIf="!isOwnProfile()" class="profile-view">
+          <div class="profile-bio-box">
+             <h3>About</h3>
+             <p>{{ user()?.bio || 'This author hasn\'t added a bio yet.' }}</p>
+          </div>
+          
+          <div class="profile-details-grid">
+             <div class="detail-item">
+                <label>Role</label>
+                <span>{{ user()?.role }}</span>
+             </div>
+             <div class="detail-item">
+                <label>Joined</label>
+                <span>{{ user()?.createdAt | date:'mediumDate' }}</span>
+             </div>
+          </div>
+        </div>
+
+        <!-- Edit Mode (Self) -->
+        <form *ngIf="isOwnProfile()" [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="form-grid">
+          <div class="field">
+            <label for="profile-full-name">Full name</label>
+            <input id="profile-full-name" type="text" formControlName="fullName" placeholder="Your full name" />
+          </div>
+
+          <div class="field">
+            <label for="profile-email">Email address</label>
+            <input id="profile-email" type="email" [value]="userEmail()" disabled class="field__disabled" />
+            <span class="field__hint">Managed by your auth account and kept read-only here.</span>
+          </div>
+
+          <div class="field field--full">
+            <label for="profile-bio">Bio</label>
+            <textarea id="profile-bio" rows="4" formControlName="bio" placeholder="Tell readers what you write about."></textarea>
+          </div>
+
+          <div class="field">
+            <label for="profile-contact">Contact number</label>
+            <input id="profile-contact" type="text" formControlName="contactNumber" placeholder="+91 ..." />
+          </div>
+
+          <div class="field">
+            <label for="profile-avatar">Avatar URL</label>
+            <input id="profile-avatar" type="text" formControlName="avatarUrl" placeholder="https://..." />
+          </div>
+
+          <div class="field field--full field-group" formGroupName="socialLinks">
+            <div class="field-group__head">
+              <h3>Social links</h3>
+              <span>Optional, but helpful for discoverability.</span>
+            </div>
+
+            <div class="social-grid">
+              <div class="field">
+                <label for="profile-linkedin">LinkedIn</label>
+                <input id="profile-linkedin" type="text" formControlName="linkedin" placeholder="LinkedIn URL" />
+              </div>
+
+              <div class="field">
+                <label for="profile-instagram">Instagram</label>
+                <input id="profile-instagram" type="text" formControlName="instagram" placeholder="Instagram URL" />
+              </div>
+
+              <div class="field">
+                <label for="profile-github">GitHub</label>
+                <input id="profile-github" type="text" formControlName="github" placeholder="GitHub URL" />
+              </div>
+
+              <div class="field">
+                <label for="profile-twitter">Twitter / X</label>
+                <input id="profile-twitter" type="text" formControlName="twitter" placeholder="Twitter / X URL" />
+              </div>
+            </div>
+          </div>
+
+          <div class="feedback feedback--success" *ngIf="profileMessage()">{{ profileMessage() }}</div>
+          <div class="feedback feedback--error" *ngIf="profileError()">{{ profileError() }}</div>
+
+          <div class="actions">
+            <button type="submit" class="btn btn--primary" [disabled]="isSavingProfile()">
+              <span *ngIf="!isSavingProfile()">Save changes</span>
+              <span *ngIf="isSavingProfile()">Saving...</span>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card" id="account-security" *ngIf="isOwnProfile()">
+        <div class="card__head">
+          <div>
+            <p class="card__eyebrow">Security</p>
+            <h2>Change password</h2>
+          </div>
+        </div>
+
+        <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="form-grid">
+          <div class="field">
+            <label for="current-password">Current password</label>
+            <input id="current-password" type="password" formControlName="currentPassword" placeholder="Current password" />
+          </div>
+
+          <div class="field">
+            <label for="new-password">New password</label>
+            <input id="new-password" type="password" formControlName="newPassword" placeholder="New password" />
+          </div>
+
+          <div class="field field--full">
+            <label for="confirm-password">Confirm new password</label>
+            <input id="confirm-password" type="password" formControlName="confirmPassword" placeholder="Confirm new password" />
+          </div>
+
+          <div class="feedback feedback--success" *ngIf="passwordMessage()">{{ passwordMessage() }}</div>
+          <div class="feedback feedback--error" *ngIf="passwordError()">{{ passwordError() }}</div>
+
+          <div class="actions">
+            <button type="submit" class="btn btn--secondary" [disabled]="isChangingPassword()">
+              <span *ngIf="!isChangingPassword()">Update password</span>
+              <span *ngIf="isChangingPassword()">Updating...</span>
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <aside class="sidebar">
+      <section class="card card--compact">
+        <div class="card__head">
+          <div>
+            <p class="card__eyebrow">Membership</p>
+            <h2>Account status</h2>
+          </div>
+        </div>
+
+        <div class="plan-box" [class.plan-box--pro]="userPlan() === 'PRO'">
+          <div class="plan-box__top">
+            <span>{{ userPlan() }} plan</span>
+            <a routerLink="/pricing" *ngIf="userPlan() === 'FREE'">Upgrade</a>
+          </div>
+          <p>
+            {{ userPlan() === 'PRO'
+              ? 'Your profile is ready for premium publishing, deeper analytics, and newsletter tools.'
+              : 'You can publish freely now. Upgrade later for newsletter, analytics, and monetization tools.' }}
+          </p>
+        </div>
+
+        <div class="mini-list">
+          <div class="mini-item">
+            <span>Provider</span>
+            <strong>{{ user()?.provider ?? 'LOCAL' }}</strong>
+          </div>
+          <div class="mini-item">
+            <span>Status</span>
+            <strong>{{ user()?.isActive === false ? 'Inactive' : 'Active' }}</strong>
+          </div>
+          <div class="mini-item">
+            <span>Joined</span>
+            <strong>{{ user()?.createdAt ? (user()?.createdAt | date:'mediumDate') : 'Recently' }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="card card--compact" *ngIf="isOwnProfile()">
+        <div class="card__head">
+          <div>
+            <p class="card__eyebrow">Connections</p>
+            <h2>Connected accounts</h2>
+          </div>
+        </div>
+
+        <div class="connection-row">
+          <span class="connection-row__icon">G</span>
+          <div>
+            <strong>Google</strong>
+            <span>{{ user()?.provider === 'GOOGLE' ? 'Connected' : 'Not linked' }}</span>
+          </div>
+        </div>
+
+        <div class="connection-row">
+          <span class="connection-row__icon">GH</span>
+          <div>
+            <strong>GitHub</strong>
+            <span>{{ user()?.provider === 'GITHUB' ? 'Connected' : 'Not linked' }}</span>
+          </div>
+        </div>
+
+        <div class="connection-row">
+          <span class="connection-row__icon">L</span>
+          <div>
+            <strong>Local account</strong>
+            <span>{{ user()?.provider === 'LOCAL' || !user()?.provider ? 'Connected' : 'Fallback sign-in' }}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card card--compact card--danger" *ngIf="isOwnProfile()">
+        <div class="card__head">
+          <div>
+            <p class="card__eyebrow">Danger zone</p>
+            <h2>Deactivate account</h2>
+          </div>
+        </div>
+
+        <p class="danger-copy">
+          This will send a verification code to your email. Your account will be permanently deleted after verification.
+        </p>
+
+        <div class="feedback feedback--error" *ngIf="dangerError()">{{ dangerError() }}</div>
+
+        <div class="deactivation-otp" *ngIf="showDeactivateOtp()">
+          <form [formGroup]="deactivationOtpForm" (ngSubmit)="confirmDeactivation()" class="otp-form">
+            <div class="field">
+              <label for="deactivation-otp-input">Verification Code</label>
+              <input id="deactivation-otp-input" type="text" formControlName="otp" placeholder="Enter OTP" maxlength="6" />
+            </div>
+            <div class="otp-actions">
+              <button class="btn btn--danger" type="submit" [disabled]="isConfirmingDeactivation() || deactivationOtpForm.invalid">
+                <span *ngIf="!isConfirmingDeactivation()">Confirm Deactivation</span>
+                <span *ngIf="isConfirmingDeactivation()">Verifying...</span>
+              </button>
+              <button class="btn btn--secondary" type="button" (click)="cancelDeactivation()" [disabled]="isConfirmingDeactivation()">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <button class="btn btn--danger" type="button" (click)="deactivateAccount()" [disabled]="isDeactivating()" *ngIf="!showDeactivateOtp()">
+          <span *ngIf="!isDeactivating()">Deactivate my account</span>
+          <span *ngIf="isDeactivating()">Requesting...</span>
+        </button>
+      </section>
+    </aside>
+  </div>
+
+  <ng-template #loadingState>
+    <div class="loading-card">
+      <div class="loading-line loading-line--lg"></div>
+      <div class="loading-line"></div>
+      <div class="loading-line loading-line--sm"></div>
+    </div>
+  </ng-template>
+</div>

@@ -11,6 +11,8 @@ export class AuthSessionService {
   readonly token = computed(() => this.tokenState());
   readonly user = computed(() => this.userState());
   readonly role = computed<UserRole | null>(() => this.userState()?.role ?? null);
+  readonly plan = computed<'FREE' | 'PRO'>(() => this.userState()?.plan ?? 'FREE');
+  readonly isPro = computed(() => this.plan() === 'PRO');
   readonly isAuthenticated = computed(() => {
     const token = this.tokenState();
 
@@ -32,6 +34,14 @@ export class AuthSessionService {
     this.saveUser(user);
   }
 
+  /** Call after a successful payment verification to refresh the plan in-session */
+  updatePlan(plan: 'FREE' | 'PRO', planExpiry?: string) {
+    const current = this.userState();
+    if (!current) return;
+    const updated: AuthUser = { ...current, plan, planExpiry };
+    this.saveUser(updated);
+  }
+
   clearToken() {
     this.tokenState.set(null);
     this.writeToken(null);
@@ -50,7 +60,7 @@ export class AuthSessionService {
   getPostLoginRedirectUrl(): string {
     switch (this.role()) {
       case 'ADMIN':
-        return '/dashboard';
+        return '/admin-server';
       case 'AUTHOR':
         return '/dashboard';
       case 'READER':

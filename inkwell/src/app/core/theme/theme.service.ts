@@ -5,6 +5,7 @@ import {
   computed,
   inject,
   signal,
+  effect,
 } from '@angular/core';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
@@ -15,42 +16,51 @@ export class ThemeService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly storageKey = 'inkwell.theme.mode';
-  private readonly mediaQuery = this.getMediaQuery();
-
   private initialized = false;
-  private readonly modeState = signal<ThemeMode>(this.readStoredMode());
 
-  readonly mode = computed(() => this.modeState());
+  readonly mode = signal<ThemeMode>(this.readStoredMode());
+
   readonly resolvedTheme = computed<'light' | 'dark'>(() => {
-    const mode = this.modeState();
+    const mode = this.mode();
 
     if (mode === 'system') {
-      return this.mediaQuery?.matches ? 'dark' : 'light';
+      if (this.isBrowser && window.matchMedia) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      return 'light';
     }
 
     return mode;
   });
 
-  init() {
-    if (this.initialized) {
-      return;
+  constructor() {
+    if (this.isBrowser) {
+      effect(() => {
+        const theme = this.resolvedTheme();
+        console.log('[ThemeService] Applying theme:', theme);
+        this.applyTheme(theme);
+      });
     }
+  }
 
+  init() {
+    if (this.initialized || !this.isBrowser) return;
     this.initialized = true;
 
-    if (!this.isBrowser) {
-      return;
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)')
+        .addEventListener('change', () => {
+          if (this.mode() === 'system') {
+            this.applyTheme(this.resolvedTheme());
+          }
+        });
     }
-
-    this.applyTheme(this.resolvedTheme());
-
-    this.mediaQuery?.addEventListener('change', this.handleSystemThemeChange);
   }
 
   setMode(mode: ThemeMode) {
-    this.modeState.set(mode);
+    console.log('[ThemeService] Setting mode:', mode);
+    this.mode.set(mode);
     this.persistMode(mode);
-    this.applyTheme(this.resolvedTheme());
   }
 
   toggle() {
@@ -58,31 +68,23 @@ export class ThemeService {
   }
 
   private handleSystemThemeChange = () => {
-    if (this.modeState() === 'system') {
+    if (this.mode() === 'system') {
       this.applyTheme(this.resolvedTheme());
     }
   };
 
   private applyTheme(theme: 'light' | 'dark') {
-    if (!this.isBrowser) {
-      return;
+    if (!this.isBrowser) return;
+
+    const root = this.document.documentElement;
+    if (root) {
+      root.setAttribute('data-theme', theme);
+      // Also update meta theme-color for mobile browsers
+      const meta = this.document.querySelector('meta[name="theme-color"]');
+      if (meta) {
+        meta.setAttribute('content', theme === 'dark' ? '#0c0e14' : '#faf7f2');
+      }
     }
-
-    const root = this.document?.documentElement;
-
-    if (!root) {
-      return;
-    }
-
-    root.dataset['theme'] = theme;
-  }
-
-  private getMediaQuery(): MediaQueryList | null {
-    if (!this.isBrowser || typeof window === 'undefined') {
-      return null;
-    }
-
-    return window.matchMedia('(prefers-color-scheme: dark)');
   }
 
   private readStoredMode(): ThemeMode {

@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { finalize, switchMap, interval, takeWhile, tap } from 'rxjs';
+import { finalize, switchMap } from 'rxjs';
 import {
   SocialLoginButtonsComponent,
 } from '../../components/social-login-buttons/social-login-buttons.component';
@@ -14,7 +14,6 @@ const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).*$/;
 function passwordsMatch(control: AbstractControl) {
   const password = control.get('password')?.value;
   const confirmPassword = control.get('confirmPassword')?.value;
-
   return password === confirmPassword ? null : { passwordMismatch: true };
 }
 
@@ -36,7 +35,6 @@ export class RegisterPageComponent {
   readonly isSubmitting = signal(false);
   readonly submitError = signal<string | null>(null);
 
-  /** OTP Flow state */
   readonly currentStep = signal<'form' | 'otp'>('form');
   readonly registeredEmail = signal<string>('');
   readonly otpDigits = signal<string[]>(['', '', '', '', '', '']);
@@ -83,24 +81,16 @@ export class RegisterPageComponent {
 
   readonly otpValue = computed(() => this.otpDigits().join(''));
 
-  togglePassword() {
-    this.showPassword.update((value) => !value);
-  }
-
-  toggleConfirmPassword() {
-    this.showConfirmPassword.update((value) => !value);
-  }
+  togglePassword() { this.showPassword.update(v => !v); }
+  toggleConfirmPassword() { this.showConfirmPassword.update(v => !v); }
 
   onSubmit() {
     this.submitError.set(null);
-
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-
     const { username, fullName, email, password } = this.form.getRawValue();
-
     this.isSubmitting.set(true);
     this.authApi
       .register({ username, fullName, email, password })
@@ -122,102 +112,123 @@ export class RegisterPageComponent {
             (error?.status === 409
               ? 'Email already registered.'
               : 'Unable to create your account right now. Please try again.');
-
           this.submitError.set(message);
         },
       });
   }
 
+  // ─── OTP INPUT HANDLERS (fixed) ──────────────────────────────────────────
+
+  private getOtpInputs(el: HTMLElement): HTMLInputElement[] {
+    const container = el.closest('.otp-input-group');
+    if (!container) return [];
+    return Array.from(container.querySelectorAll<HTMLInputElement>('input'));
+  }
+  
+  onOtpKeydown(index: number, event: KeyboardEvent) {
+    const input = event.target as HTMLInputElement;
+    const inputs = this.getOtpInputs(input);
+    const key = event.key;
+  
+    // ── Navigation keys ──────────────────────────────────────────────────────
+    if (key === 'ArrowLeft') {
+      event.preventDefault();
+      inputs[index - 1]?.focus();
+      return;
+    }
+    if (key === 'ArrowRight') {
+      event.preventDefault();
+      inputs[index + 1]?.focus();
+      return;
+    }
+    if (key === 'Tab') return; // let Tab work naturally
+  
+    // ── Backspace / Delete ───────────────────────────────────────────────────
+    if (key === 'Backspace' || key === 'Delete') {
+      event.preventDefault();
+      const digits = [...this.otpDigits()];
+      if (digits[index]) {
+        // Clear current box
+        digits[index] = '';
+        this.otpDigits.set(digits);
+        input.value = '';
+      } else if (index > 0) {
+        // Already empty — go back and clear previous
+        digits[index - 1] = '';
+        this.otpDigits.set(digits);
+        const prev = inputs[index - 1];
+        prev.value = '';
+        prev.focus();
+      }
+      this.otpError.set(null);
+      return;
+    }
+  
+    // ── Digit entry ──────────────────────────────────────────────────────────
+    if (/^\d$/.test(key)) {
+      event.preventDefault(); // stop browser writing the char itself
+  
+      const digits = [...this.otpDigits()];
+      digits[index] = key;
+      this.otpDigits.set(digits);
+  
+      // Write directly to DOM — don't rely on Angular re-render timing
+      input.value = key;
+      this.otpError.set(null);
+  
+      // Move focus — explicitly reset the next input's DOM value first
+      if (index < 5) {
+        const next = inputs[index + 1];
+        next.value = digits[index + 1] ?? ''; // keep existing value, don't clear
+        next.focus();
+      }
+      return;
+    }
+  
+    // Block everything else (letters, symbols, etc.)
+    event.preventDefault();
+  }
+  
+  // onOtpInput is removed entirely — keydown handles everything on desktop.
+  // For Android soft keyboards that skip keydown, we use a minimal input fallback:
   onOtpInput(index: number, event: Event) {
     const input = event.target as HTMLInputElement;
-    const value = input.value;
-
-    // Only allow single digit
-    const digit = value.replace(/\D/g, '').slice(-1);
-    
-    // Update the signal
+    const inputs = this.getOtpInputs(input);
+  
+    // Strip non-digits, keep only last character typed
+    const digit = input.value.replace(/\D/g, '').slice(-1);
+    input.value = digit; // immediately clamp to 1 digit in DOM
+  
     const digits = [...this.otpDigits()];
     digits[index] = digit;
     this.otpDigits.set(digits);
-    
-    // Explicitly set the value to just the one digit to prevent browser "help"
-    input.value = digit;
     this.otpError.set(null);
-
-    // Auto-focus next input using a more stable selector
+  
     if (digit && index < 5) {
-      const container = input.closest('.otp-input-group');
-      const allInputs = container?.querySelectorAll<HTMLInputElement>('input');
-      if (allInputs && allInputs[index + 1]) {
-        // Use a tiny timeout to ensure the current event is fully processed 
-        // before shifting focus, preventing the digit from leaking into the next box.
-        setTimeout(() => allInputs[index + 1].focus(), 0);
-      }
+      inputs[index + 1]?.focus();
     }
   }
-
-  onOtpKeydown(index: number, event: KeyboardEvent) {
-    const input = event.target as HTMLInputElement;
-
-    if (event.key === 'Backspace') {
-      if (!input.value && index > 0) {
-        const prevInput = input.parentElement?.querySelector<HTMLInputElement>(
-          `input:nth-child(${index})`
-        );
-        if (prevInput) {
-          prevInput.focus();
-          prevInput.value = '';
-          const digits = [...this.otpDigits()];
-          digits[index - 1] = '';
-          this.otpDigits.set(digits);
-        }
-      } else {
-        const digits = [...this.otpDigits()];
-        digits[index] = '';
-        this.otpDigits.set(digits);
-      }
-    }
-
-    if (event.key === 'ArrowLeft' && index > 0) {
-      const prevInput = input.parentElement?.querySelector<HTMLInputElement>(
-        `input:nth-child(${index})`
-      );
-      prevInput?.focus();
-    }
-
-    if (event.key === 'ArrowRight' && index < 5) {
-      const nextInput = input.parentElement?.querySelector<HTMLInputElement>(
-        `input:nth-child(${index + 2})`
-      );
-      nextInput?.focus();
-    }
-  }
-
+  
   onOtpPaste(event: ClipboardEvent) {
     event.preventDefault();
     const pastedData = event.clipboardData?.getData('text') ?? '';
-    const digits = pastedData.replace(/\D/g, '').slice(0, 6).split('');
-
-    if (digits.length > 0) {
-      const newOtpDigits = [...this.otpDigits()];
-      digits.forEach((d, i) => {
-        if (i < 6) newOtpDigits[i] = d;
-      });
-      this.otpDigits.set(newOtpDigits);
-
-      // Update the actual input elements
-      const container = (event.target as HTMLElement)?.parentElement;
-      if (container) {
-        const inputs = container.querySelectorAll<HTMLInputElement>('input');
-        inputs.forEach((inp, i) => {
-          inp.value = newOtpDigits[i] || '';
-        });
-        // Focus last filled or the next empty
-        const focusIndex = Math.min(digits.length, 5);
-        inputs[focusIndex]?.focus();
-      }
+    const pasted = pastedData.replace(/\D/g, '').slice(0, 6);
+    if (!pasted.length) return;
+  
+    const newDigits: string[] = ['', '', '', '', '', ''];
+    pasted.split('').forEach((d, i) => { newDigits[i] = d; });
+    this.otpDigits.set(newDigits);
+  
+    // Sync all DOM inputs immediately
+    const container = (event.target as HTMLElement).closest('.otp-input-group');
+    if (container) {
+      const inputs = Array.from(container.querySelectorAll<HTMLInputElement>('input'));
+      inputs.forEach((inp, i) => { inp.value = newDigits[i]; });
+      inputs[Math.min(pasted.length, 5)]?.focus();
     }
   }
+
+  // ─── OTP VERIFY / RESEND ─────────────────────────────────────────────────
 
   verifyOtp() {
     const code = this.otpValue();
@@ -237,15 +248,12 @@ export class RegisterPageComponent {
       .verifyOtp({ email, otp: code })
       .pipe(
         switchMap(() => {
-          // Verification successful, now login to get the JWT
           this.otpSuccess.set('Verified! Signing you in...');
           return this.authApi.login({ email, password, rememberMe: true });
         }),
         switchMap((loginResponse) => {
           const token = this.authApi.extractToken(loginResponse);
-          if (!token) {
-            throw new Error('Signed in, but no token was returned.');
-          }
+          if (!token) throw new Error('Signed in, but no token was returned.');
           this.authSession.saveToken(token);
           return this.authApi.getProfile();
         }),
@@ -271,7 +279,6 @@ export class RegisterPageComponent {
               : error?.status === 410
                 ? 'OTP has expired. Please request a new one.'
                 : 'Verification failed. Please try again.');
-
           this.otpError.set(message);
         },
       });
@@ -279,7 +286,6 @@ export class RegisterPageComponent {
 
   resendOtp() {
     if (this.resendCooldown() > 0 || this.isResending()) return;
-
     this.isResending.set(true);
     this.otpError.set(null);
 
@@ -294,10 +300,7 @@ export class RegisterPageComponent {
           setTimeout(() => this.otpSuccess.set(null), 4000);
         },
         error: (error) => {
-          const message =
-            error?.error?.message ??
-            'Failed to resend OTP. Please try again.';
-          this.otpError.set(message);
+          this.otpError.set(error?.error?.message ?? 'Failed to resend OTP. Please try again.');
         },
       });
   }
@@ -317,11 +320,7 @@ export class RegisterPageComponent {
     this.resendCooldown.set(60);
     const timer = setInterval(() => {
       this.resendCooldown.update(v => v - 1);
-      if (this.resendCooldown() <= 0) {
-        clearInterval(timer);
-      }
+      if (this.resendCooldown() <= 0) clearInterval(timer);
     }, 1000);
   }
-
 }
-

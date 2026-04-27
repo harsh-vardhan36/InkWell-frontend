@@ -104,7 +104,7 @@
                   class="auth-field__input"
                   type="text"
                   formControlName="username"
-                  placeholder="ayushraj"
+                  placeholder="harsh35"
                   autocomplete="username"
                 />
               </div>
@@ -268,26 +268,74 @@
           We've sent a 6-digit verification code to
           <strong class="otp-email-highlight">{{ maskedEmail() }}</strong>
         </p>
-
         <!-- OTP Input Grid -->
-        <div class="otp-input-group" id="otp-input-container">
-          <input
-            *ngFor="let digit of otpDigits(); let i = index"
-            class="otp-input"
-            [class.otp-input--filled]="digit.length > 0"
-            [class.otp-input--error]="otpError()"
-            [class.otp-input--success]="otpSuccess()"
-            type="text"
-            inputmode="numeric"
-            maxlength="1"
-            [value]="digit"
-            (input)="onOtpInput(i, $event)"
-            (keydown)="onOtpKeydown(i, $event)"
-            (paste)="onOtpPaste($event)"
-            [attr.aria-label]="'Digit ' + (i + 1)"
-            autocomplete="one-time-code"
-          />
-        </div>
+<div class="otp-input-group" id="otp-input-container">
+  <input class="otp-input"
+    [class.otp-input--filled]="otpDigits()[0].length > 0"
+    [class.otp-input--error]="otpError()"
+    [class.otp-input--success]="otpSuccess()"
+    type="tel" inputmode="numeric" maxlength="1"
+    [value]="otpDigits()[0]"
+    (keydown)="onOtpKeydown(0, $event)"
+    (input)="onOtpInput(0, $event)"
+    (paste)="onOtpPaste($event)"
+    aria-label="Digit 1" autocomplete="one-time-code" />
+
+  <input class="otp-input"
+    [class.otp-input--filled]="otpDigits()[1].length > 0"
+    [class.otp-input--error]="otpError()"
+    [class.otp-input--success]="otpSuccess()"
+    type="tel" inputmode="numeric" maxlength="1"
+    [value]="otpDigits()[1]"
+    (keydown)="onOtpKeydown(1, $event)"
+    (input)="onOtpInput(1, $event)"
+    (paste)="onOtpPaste($event)"
+    aria-label="Digit 2" />
+
+  <input class="otp-input"
+    [class.otp-input--filled]="otpDigits()[2].length > 0"
+    [class.otp-input--error]="otpError()"
+    [class.otp-input--success]="otpSuccess()"
+    type="tel" inputmode="numeric" maxlength="1"
+    [value]="otpDigits()[2]"
+    (keydown)="onOtpKeydown(2, $event)"
+    (input)="onOtpInput(2, $event)"
+    (paste)="onOtpPaste($event)"
+    aria-label="Digit 3" />
+
+  <input class="otp-input"
+    [class.otp-input--filled]="otpDigits()[3].length > 0"
+    [class.otp-input--error]="otpError()"
+    [class.otp-input--success]="otpSuccess()"
+    type="tel" inputmode="numeric" maxlength="1"
+    [value]="otpDigits()[3]"
+    (keydown)="onOtpKeydown(3, $event)"
+    (input)="onOtpInput(3, $event)"
+    (paste)="onOtpPaste($event)"
+    aria-label="Digit 4" />
+
+  <input class="otp-input"
+    [class.otp-input--filled]="otpDigits()[4].length > 0"
+    [class.otp-input--error]="otpError()"
+    [class.otp-input--success]="otpSuccess()"
+    type="tel" inputmode="numeric" maxlength="1"
+    [value]="otpDigits()[4]"
+    (keydown)="onOtpKeydown(4, $event)"
+    (input)="onOtpInput(4, $event)"
+    (paste)="onOtpPaste($event)"
+    aria-label="Digit 5" />
+
+  <input class="otp-input"
+    [class.otp-input--filled]="otpDigits()[5].length > 0"
+    [class.otp-input--error]="otpError()"
+    [class.otp-input--success]="otpSuccess()"
+    type="tel" inputmode="numeric" maxlength="1"
+    [value]="otpDigits()[5]"
+    (keydown)="onOtpKeydown(5, $event)"
+    (input)="onOtpInput(5, $event)"
+    (paste)="onOtpPaste($event)"
+    aria-label="Digit 6" />
+</div>
 
         <!-- OTP Success message -->
         <div class="otp-success-bar" *ngIf="otpSuccess()" role="status">

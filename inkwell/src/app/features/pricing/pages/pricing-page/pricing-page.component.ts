@@ -5,9 +5,12 @@ import {
   OnInit,
   OnDestroy,
   HostListener,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { PaymentApiService } from '../../data-access/payment-api.service';
+import { AuthSessionService } from '../../../auth/data-access/auth-session.service';
 
 interface ComparisonRow {
   feature: string;
@@ -37,6 +40,24 @@ interface FaqItem {
          READING PROGRESS BAR
     ═══════════════════════════════════════════════ -->
     <div class="progress-bar" [style.width.%]="scrollProgress()"></div>
+
+    <!-- ═══════════════════════════════════════════════
+         PAYMENT OVERLAY (loading spinner)
+    ═══════════════════════════════════════════════ -->
+    <div class="pay-overlay" *ngIf="paymentLoading()">
+      <div class="pay-spinner">
+        <div class="spinner-ring"></div>
+        <p>Opening secure checkout…</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         TOAST NOTIFICATION
+    ═══════════════════════════════════════════════ -->
+    <div class="pay-toast" [class.toast-visible]="toastVisible()" [class.toast-error]="toastIsError()">
+      <span class="toast-icon">{{ toastIsError() ? '✕' : '✓' }}</span>
+      <span class="toast-msg">{{ toastMessage() }}</span>
+    </div>
 
     <div class="pricing-page">
 
@@ -89,7 +110,7 @@ interface FaqItem {
             <strong>Try Pro for just ₹2</strong>
             <span>— Full access for 15 days. No commitment, cancel anytime.</span>
           </div>
-          <a routerLink="/register" class="trial-cta">Start ₹2 Trial →</a>
+          <button id="trial-cta-banner" class="trial-cta" (click)="initiateProPayment('PRO_TRIAL', 'Pro Trial — 15 days for ₹2')">Start ₹2 Trial →</button>
         </div>
       </div>
 
@@ -174,10 +195,19 @@ interface FaqItem {
               </div>
             </div>
 
-            <a routerLink="/register" class="plan-cta plan-cta--amber">
-              <span class="cta-text">Start ₹2 Trial</span>
+            <button
+              id="pro-plan-cta"
+              class="plan-cta plan-cta--amber"
+              [disabled]="paymentLoading()"
+              (click)="initiateProPayment(
+                isYearly() ? 'PRO_YEARLY' : 'PRO_TRIAL',
+                isYearly()
+                  ? 'Pro Yearly — ₹499/mo billed annually'
+                  : 'Pro Trial — 15 days for ₹2'
+              )">
+              <span class="cta-text">{{ isYearly() ? 'Subscribe Yearly' : 'Start ₹2 Trial' }}</span>
               <span class="cta-shimmer"></span>
-            </a>
+            </button>
             <p class="cta-note">No credit card games · Cancel anytime</p>
           </div>
 
@@ -337,10 +367,14 @@ interface FaqItem {
             <p class="cta-body">Start with ₹2 for 15 days. Experience everything Pro has to offer — newsletters, analytics, monetization — then decide.</p>
           </div>
           <div class="cta-right">
-            <a routerLink="/register" class="btn-cta-main">
+            <button
+              id="cta-band-pro-btn"
+              class="btn-cta-main"
+              [disabled]="paymentLoading()"
+              (click)="initiateProPayment('PRO_TRIAL', 'Pro Trial — 15 days for ₹2')">
               <span>Start ₹2 Trial</span>
               <span class="btn-arrow">→</span>
-            </a>
+            </button>
             <a routerLink="/register" class="btn-cta-ghost">Create free account</a>
             <p class="cta-disclaimer">₹2 charged once · Full Pro access · Cancel anytime</p>
           </div>
@@ -400,7 +434,7 @@ interface FaqItem {
     }
     .orb-2 {
       width: 400px; height: 400px;
-      background: #2a8a6a;
+      background: var(--iw-emerald);
       top: -80px; right: -100px;
       animation-delay: -3s;
     }
@@ -489,7 +523,7 @@ interface FaqItem {
     .hero-subtitle {
       font-family: var(--font-prose);
       font-size: 1.15rem;
-      color: var(--iw-ink-muted);
+      color: var(--iw-muted);
       line-height: 1.7;
       margin: 0 0 40px;
       animation: fadeUp 0.6s 0.2s ease both;
@@ -508,7 +542,7 @@ interface FaqItem {
     .toggle-label {
       font-size: 0.95rem;
       font-weight: 500;
-      color: var(--iw-ink-muted);
+      color: var(--iw-muted);
       transition: color 0.25s;
       display: flex;
       align-items: center;
@@ -547,7 +581,7 @@ interface FaqItem {
     }
 
     .save-badge {
-      background: #2a8a6a;
+      background: var(--iw-emerald);
       color: #fff;
       font-size: 0.65rem;
       font-weight: 800;
@@ -561,7 +595,7 @@ interface FaqItem {
        TRIAL BANNER
     ═══════════════════════════════════════════ */
     .trial-banner {
-      background: linear-gradient(135deg, #1a3a2a 0%, #2a8a6a 100%);
+      background: linear-gradient(135deg, #1a3a2a 0%, var(--iw-emerald) 100%);
       padding: 0 24px;
     }
 
@@ -648,7 +682,8 @@ interface FaqItem {
     }
 
     .plan-card:hover {
-      box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+      box-shadow: var(--iw-shadow-lg);
+      border-color: var(--iw-brand);
     }
 
     .plan-icon {
@@ -657,7 +692,7 @@ interface FaqItem {
       display: block;
     }
     .plan-icon--amber { color: var(--iw-brand); }
-    .plan-icon--emerald { color: #2a8a6a; }
+    .plan-icon--emerald { color: var(--iw-emerald); }
 
     .plan-name {
       font-family: var(--font-display);
@@ -669,7 +704,7 @@ interface FaqItem {
 
     .plan-tagline {
       font-size: 0.88rem;
-      color: var(--iw-ink-muted);
+      color: var(--iw-muted);
       margin: 0 0 28px;
     }
 
@@ -683,9 +718,9 @@ interface FaqItem {
 
     .trial-chip {
       display: inline-block;
-      background: rgba(42, 138, 106, 0.12);
+      background: var(--iw-emerald-soft);
       border: 1px solid rgba(42, 138, 106, 0.3);
-      color: #2a8a6a;
+      color: var(--iw-emerald);
       font-size: 0.78rem;
       font-weight: 700;
       padding: 3px 12px;
@@ -702,13 +737,13 @@ interface FaqItem {
 
     .price-period {
       font-size: 0.9rem;
-      color: var(--iw-ink-muted);
+      color: var(--iw-muted);
       margin-left: 4px;
     }
 
     .price-note {
       font-size: 0.78rem;
-      color: var(--iw-ink-muted);
+      color: var(--iw-muted);
       margin: 6px 0 0;
     }
 
@@ -730,7 +765,7 @@ interface FaqItem {
     }
 
     .feature-item.feature-missing {
-      color: var(--iw-ink-muted);
+      color: var(--iw-muted);
       opacity: 0.6;
     }
 
@@ -740,12 +775,12 @@ interface FaqItem {
       flex-shrink: 0;
       margin-top: 2px;
     }
-    .check-free { color: var(--iw-ink-muted); }
+    .check-free { color: var(--iw-muted); }
     .check-amber { color: var(--iw-brand); }
-    .check-emerald { color: #2a8a6a; }
+    .check-emerald { color: var(--iw-emerald); }
 
     .feature-x {
-      color: var(--iw-ink-muted);
+      color: var(--iw-muted);
       flex-shrink: 0;
       margin-top: 2px;
       font-size: 0.85rem;
@@ -1407,6 +1442,100 @@ interface FaqItem {
     /* ═══════════════════════════════════════════
        RESPONSIVE
     ═══════════════════════════════════════════ */
+    /* ═══════════════════════════════════════════
+       PAYMENT OVERLAY & TOAST
+    ═══════════════════════════════════════════ */
+    .pay-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      z-index: 9000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pay-spinner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .pay-spinner p {
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: 0.02em;
+    }
+
+    .spinner-ring {
+      width: 56px;
+      height: 56px;
+      border: 4px solid rgba(255,255,255,0.2);
+      border-top-color: var(--iw-brand);
+      border-radius: 50%;
+      animation: spin 0.85s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .pay-toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      z-index: 9100;
+      background: #1e2530;
+      border: 1px solid var(--iw-brand-glow);
+      color: #fff;
+      padding: 14px 28px;
+      border-radius: 100px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+      opacity: 0;
+      white-space: nowrap;
+    }
+    .pay-toast.toast-visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    .pay-toast.toast-error {
+      border-color: rgba(220, 80, 80, 0.5);
+      background: #2a1414;
+    }
+    .toast-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--iw-brand);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+    .toast-error .toast-icon {
+      background: #dc5050;
+    }
+    .toast-msg { max-width: 340px; }
+
+    /* Disabled state for payment buttons */
+    button[disabled] {
+      opacity: 0.6;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
     @media (max-width: 1024px) {
       .plans-grid {
         grid-template-columns: 1fr;
@@ -1454,12 +1583,22 @@ interface FaqItem {
   `],
 })
 export class PricingPageComponent implements OnInit, OnDestroy {
+  private readonly paymentSvc  = inject(PaymentApiService);
+  private readonly authSession = inject(AuthSessionService);
+  private readonly router      = inject(Router);
 
-  isYearly = signal(false);
-  cardsVisible = signal(false);
+  isYearly       = signal(false);
+  cardsVisible   = signal(false);
   scrollProgress = signal(0);
 
+  // ── Payment state
+  paymentLoading = signal(false);
+  toastVisible   = signal(false);
+  toastMessage   = signal('');
+  toastIsError   = signal(false);
+
   private scrollHandler = () => this.onScroll();
+  private toastTimer?: ReturnType<typeof setTimeout>;
 
   // ── Free plan features (simple strings)
   freeFeatures: string[] = [
@@ -1638,6 +1777,46 @@ export class PricingPageComponent implements OnInit, OnDestroy {
     this.faqs[index].open = !this.faqs[index].open;
   }
 
+  /** Triggers Razorpay checkout. Redirects to /login if user is not authenticated. */
+  async initiateProPayment(
+    plan: 'PRO_TRIAL' | 'PRO_MONTHLY' | 'PRO_YEARLY',
+    description: string,
+  ): Promise<void> {
+    if (!this.authSession.isAuthenticated()) {
+      this.router.navigate(['/login'], {
+        queryParams: { returnUrl: '/pricing', reason: 'upgrade' },
+      });
+      return;
+    }
+
+    if (this.authSession.isPro()) {
+      this.showToast('You are already on a Pro plan 🎉', false);
+      return;
+    }
+
+    this.paymentLoading.set(true);
+
+    try {
+      const result = await this.paymentSvc.initiateCheckout(plan, description);
+      // Update session so plan gates react immediately
+      this.authSession.updatePlan('PRO', result.planExpiry);
+      this.showToast('🎉 Pro plan activated! Enjoy InkWell Pro.', false);
+    } catch (err: unknown) {
+      const msg = typeof err === 'string' ? err : 'Payment failed. Please try again.';
+      this.showToast(msg, true);
+    } finally {
+      this.paymentLoading.set(false);
+    }
+  }
+
+  private showToast(message: string, isError: boolean): void {
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.toastMessage.set(message);
+    this.toastIsError.set(isError);
+    this.toastVisible.set(true);
+    this.toastTimer = setTimeout(() => this.toastVisible.set(false), 4000);
+  }
+
   @HostListener('window:scroll')
   onScroll(): void {
     const scrollTop = window.scrollY;
@@ -1652,5 +1831,6 @@ export class PricingPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     window.removeEventListener('scroll', this.scrollHandler);
+    if (this.toastTimer) clearTimeout(this.toastTimer);
   }
 }

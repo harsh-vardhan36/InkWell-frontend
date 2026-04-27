@@ -1,0 +1,124 @@
+<section class="analytics">
+  <header class="page-header">
+    <div class="page-header__left">
+      <p class="page-header__eyebrow">Performance</p>
+      <h1>Analytics</h1>
+      <p class="page-header__sub">Track your growth and engagement across all your stories.</p>
+    </div>
+  </header>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="stat-card__icon"><small>👀</small></span>
+      <div class="stat-card__data">
+        <span class="stat-card__label">Total Views</span>
+        <strong class="stat-card__value">{{ stats().totalViews | number }}</strong>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-card__icon">❤️</span>
+      <div class="stat-card__data">
+        <span class="stat-card__label">Total Likes</span>
+        <strong class="stat-card__value">{{ stats().totalLikes | number }}</strong>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-card__icon">⏱️</span>
+      <div class="stat-card__data">
+        <span class="stat-card__label">Avg. Read Time</span>
+        <strong class="stat-card__value">{{ stats().avgReadTime }} min</strong>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <span class="stat-card__icon">📝</span>
+      <div class="stat-card__data">
+        <span class="stat-card__label">Published Posts</span>
+        <strong class="stat-card__value">{{ stats().publishedCount }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-placeholder" [class.blurred]="isFreePlan()">
+      <div class="chart-header">
+        <h2>Audience Engagement</h2>
+        <p>Views and likes trend over the last 30 days</p>
+      </div>
+      <div class="dummy-chart">
+        <div class="dummy-bar" style="height: 40%"></div>
+        <div class="dummy-bar" style="height: 60%"></div>
+        <div class="dummy-bar" style="height: 45%"></div>
+        <div class="dummy-bar" style="height: 80%"></div>
+        <div class="dummy-bar" style="height: 55%"></div>
+        <div class="dummy-bar" style="height: 90%"></div>
+        <div class="dummy-bar" style="height: 70%"></div>
+      </div>
+      <div class="chart-info">
+        <p>Real-time graphing will be connected as your story metrics accumulate.</p>
+      </div>
+
+      <!-- Lock Overlay for Free Plan -->
+      <div class="lock-overlay" *ngIf="isFreePlan()">
+        <div class="lock-content">
+          <div class="lock-circle">
+            <span class="lock-icon">🔒</span>
+          </div>
+          <h3>PRO FEATURE</h3>
+          <p>Unlock advanced analytics and insights<br>with <span class="highlight-text">InkWell Pro.</span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Second Column: Circular fluid chart -->
+    <div class="chart-placeholder" [class.blurred]="isFreePlan()">
+      <div class="chart-header">
+        <h2>Audience Demographics</h2>
+        <p>Reader distribution by regions</p>
+      </div>
+      <div class="dummy-pyramid-chart">
+        <div class="pyramid-bar c-blue-1" style="height: 20%"></div>
+        <div class="pyramid-bar c-blue-2" style="height: 35%"></div>
+        <div class="pyramid-bar c-blue-1" style="height: 55%"></div>
+        <div class="pyramid-bar c-blue-2" style="height: 75%"></div>
+        <div class="pyramid-bar c-blue-1" style="height: 100%"></div>
+        <div class="pyramid-bar c-yellow-1" style="height: 80%"></div>
+        <div class="pyramid-bar c-yellow-2" style="height: 60%"></div>
+        <div class="pyramid-bar c-yellow-1" style="height: 40%"></div>
+        <div class="pyramid-bar c-yellow-2" style="height: 25%"></div>
+      </div>
+      <div class="chart-info">
+        <p>Discover who is reading your stories and where they come from.</p>
+      </div>
+
+      <!-- Lock Overlay for Free Plan -->
+      <div class="lock-overlay" *ngIf="isFreePlan()">
+        <div class="lock-content">
+          <div class="lock-circle">
+            <span class="lock-icon">🔒</span>
+          </div>
+          <h3>PRO FEATURE</h3>
+          <p>Unlock advanced analytics and insights<br>with <span class="highlight-text">InkWell Pro.</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pro-trial-banner" *ngIf="isFreePlan()">
+    <div class="banner-left">
+      <div class="crown-icon-wrapper">
+        <span class="crown-icon">👑</span>
+      </div>
+      <div class="banner-text">
+        <h3>Start your Free Trial</h3>
+        <p>Unlock advanced analytics, audience insights, and grow faster.</p>
+      </div>
+    </div>
+    <div class="banner-right">
+      <a routerLink="/pricing" class="btn btn-pro-trial">Try Now ➔</a>
+      <span class="trial-hint">15-day trial &bull; Cancel anytime</span>
+    </div>
+  </div>
+</section>

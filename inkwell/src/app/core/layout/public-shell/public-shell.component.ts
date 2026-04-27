@@ -67,20 +67,35 @@ import { AuthSessionService } from '../../../features/auth/data-access/auth-sess
             <app-theme-toggle />
 
             <ng-container *ngIf="isAuthenticated(); else guestActions">
-              <a class="btn btn-ghost btn-sm navbar__ghost" routerLink="/profile">
-                Profile
+              <!-- Profile -->
+              <a class="btn btn-ghost btn-sm navbar__ghost" routerLink="/profile" title="Profile">
+                <span class="btn-label">Profile</span>
+                <span class="btn-icon">👤</span>
               </a>
-              <a class="btn btn-brand btn-sm navbar__cta" routerLink="/dashboard">
-                Dashboard →
-              </a>
+              
+              <!-- Dashboard -->
+              <ng-container *ngIf="canWrite(); else lockedDashboard">
+                <a class="btn btn-brand btn-sm navbar__cta" [routerLink]="dashboardRoute()" title="Dashboard">
+                  <span class="btn-label">Dashboard →</span>
+                  <span class="btn-icon">📊</span>
+                </a>
+              </ng-container>
+              <ng-template #lockedDashboard>
+                <a class="btn btn-ghost btn-sm navbar__cta navbar__cta--locked" routerLink="/become-author" title="Become Author">
+                  <span class="btn-label">Dashboard 🔒</span>
+                  <span class="btn-icon">🔒</span>
+                </a>
+              </ng-template>
             </ng-container>
 
             <ng-template #guestActions>
-              <a class="btn btn-ghost btn-sm navbar__ghost" routerLink="/login">
-                Log in
+              <a class="btn btn-ghost btn-sm navbar__ghost navbar__ghost--locked" routerLink="/login" title="Login">
+                <span class="btn-label">Profile 🔒</span>
+                <span class="btn-icon">👤</span>
               </a>
-              <a class="btn btn-brand btn-sm navbar__cta" routerLink="/register">
-                Start writing ✦
+              <a class="btn btn-brand btn-sm navbar__cta" routerLink="/register" title="Register">
+                <span class="btn-label">Start writing ✦</span>
+                <span class="btn-icon">✍️</span>
               </a>
             </ng-template>
 
@@ -129,12 +144,18 @@ import { AuthSessionService } from '../../../features/auth/data-access/auth-sess
             </a>
           </ng-container>
           <ng-container *ngIf="isAuthenticated()">
-            <a class="mobile-drawer__link" routerLink="/dashboard" (click)="closeMobile()">
+            <a *ngIf="canWrite()" class="mobile-drawer__link" [routerLink]="dashboardRoute()" (click)="closeMobile()">
               <span class="mobile-drawer__icon">📊</span> Dashboard
+            </a>
+            <a *ngIf="!canWrite()" class="mobile-drawer__link" routerLink="/become-author" (click)="closeMobile()">
+              <span class="mobile-drawer__icon">🔒</span> Become Author
             </a>
             <a class="mobile-drawer__link" routerLink="/profile" (click)="closeMobile()">
               <span class="mobile-drawer__icon">👤</span> Profile
             </a>
+            <button class="mobile-drawer__link mobile-drawer__link--danger" (click)="logout()">
+              <span class="mobile-drawer__icon">⏻</span> Logout
+            </button>
           </ng-container>
         </nav>
 
@@ -276,7 +297,7 @@ import { AuthSessionService } from '../../../features/auth/data-access/auth-sess
 
     .navbar__link:hover {
       color: var(--iw-ink);
-      background: rgba(120, 90, 50, 0.06);
+      background: var(--iw-brand-soft);
     }
 
     .navbar__link--active {
@@ -311,19 +332,60 @@ import { AuthSessionService } from '../../../features/auth/data-access/auth-sess
 
     .navbar__ghost {
       border: 1px solid var(--iw-border);
+      background: var(--iw-surface);
+      color: var(--iw-ink-2);
+    }
+    
+    .btn-icon { display: none; }
+
+    @media (max-width: 800px) {
+      .btn-label { display: none; }
+      .btn-icon { 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 1.15rem; 
+        line-height: 1; 
+      }
+      .navbar__cta, .navbar__ghost { 
+        padding: 0; 
+        width: 38px; 
+        height: 38px; 
+        min-width: 38px;
+        border-radius: 50%; 
+        justify-content: center; 
+        display: inline-flex;
+        align-items: center;
+      }
+    }
+    
+    .navbar__ghost--locked, .navbar__cta--locked {
+      opacity: 0.7;
+      cursor: pointer;
+    }
+    
+    .navbar__cta--locked {
+      background: var(--iw-bg-alt) !important;
+      color: var(--iw-muted) !important;
+      border: 1px dashed var(--iw-border) !important;
+      box-shadow: none !important;
     }
 
     /* Hamburger */
     .navbar__hamburger {
       display: none;
       flex-direction: column;
-      gap: 5px;
-      padding: 8px;
-      border-radius: 8px;
+      gap: 4px;
+      padding: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
       cursor: pointer;
-      background: none;
+      background: var(--iw-surface);
       border: 1px solid var(--iw-border);
       transition: var(--trans);
+      align-items: center;
+      justify-content: center;
     }
 
     .navbar__hamburger:hover {
@@ -382,7 +444,7 @@ import { AuthSessionService } from '../../../features/auth/data-access/auth-sess
       bottom: 0;
       z-index: 201;
       width: min(300px, 85vw);
-      background: var(--iw-surface-solid);
+      background: var(--iw-bg-alt);
       border-left: 1px solid var(--iw-border);
       box-shadow: var(--iw-shadow-lg);
       padding: 20px;
@@ -439,6 +501,20 @@ import { AuthSessionService } from '../../../features/auth/data-access/auth-sess
       flex-shrink: 0;
     }
 
+    .mobile-drawer__link--danger {
+      margin-top: 10px;
+      color: #ff4757;
+      background: none;
+      border: none;
+      width: 100%;
+      cursor: pointer;
+    }
+    
+    .mobile-drawer__link--danger:hover {
+      background: rgba(255, 71, 87, 0.1) !important;
+      color: #ff4757 !important;
+    }
+
     .mobile-drawer__foot {
       padding-top: 20px;
       border-top: 1px solid var(--iw-border);
@@ -453,22 +529,25 @@ import { AuthSessionService } from '../../../features/auth/data-access/auth-sess
     ════════════════════════════ */
     @media (max-width: 960px) {
       .navbar__inner {
-        grid-template-columns: auto auto;
+        grid-template-columns: auto 1fr auto;
       }
 
       .navbar__nav {
         display: none;
       }
 
-      .navbar__ghost {
-        display: none;
-      }
-
       .navbar__hamburger {
         display: flex;
+        order: 3;
       }
+      
+      .navbar__actions {
+        gap: 4px;
+      }
+    }
 
-      .navbar__cta {
+    @media (max-width: 640px) {
+      .navbar__wordmark {
         display: none;
       }
     }
@@ -491,6 +570,7 @@ export class PublicShellComponent implements OnInit {
 
 
   protected readonly isAuthenticated = computed(() => this.authSession.isAuthenticated());
+  protected readonly dashboardRoute = computed(() => this.authSession.getPostLoginRedirectUrl());
   protected readonly canWrite = computed(() => {
     const role = this.authSession.role();
     return role === 'AUTHOR' || role === 'ADMIN';
@@ -520,5 +600,11 @@ export class PublicShellComponent implements OnInit {
   closeMobile(): void {
     this.mobileOpen.set(false);
     document.body.style.overflow = '';
+  }
+
+  logout(): void {
+    this.authSession.clearToken();
+    this.closeMobile();
+    window.location.href = '/login';
   }
 }
