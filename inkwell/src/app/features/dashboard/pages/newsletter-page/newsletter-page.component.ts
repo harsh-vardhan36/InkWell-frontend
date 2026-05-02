@@ -85,7 +85,7 @@ export class NewsletterPageComponent implements OnInit {
     const post = this.publishedPosts().find(p => p.id.toString() === this.selectedPostId());
     if (!post) return;
 
-    const link = `${window.location.origin}/blog/${post.id}`;
+    const link = `http://localhost:4200/blog/${post.id}`;
     
     this.isSending.set(true);
     this.alertMessage.set(null);
