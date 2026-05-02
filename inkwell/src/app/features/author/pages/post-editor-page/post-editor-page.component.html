@@ -40,7 +40,16 @@
           <div class="editor-toolbar__group">
             <button type="button" (click)="insertSnippet('quote')">Quote</button>
             <button type="button" (click)="insertSnippet('code')">Code</button>
-            <button type="button" disabled title="Media upload will be enabled after S3 setup">Image</button>
+            <button type="button" (click)="fileInput.click()" [disabled]="isUploading()">
+              {{ isUploading() ? 'Uploading...' : 'Image' }}
+            </button>
+            <input
+              #fileInput
+              type="file"
+              (change)="onFileSelected($event)"
+              accept="image/*"
+              style="display: none"
+            />
           </div>
         </div>
 
@@ -82,7 +91,13 @@
 
             <div class="field">
               <label for="post-cover">Cover image URL</label>
-              <input id="post-cover" type="text" formControlName="coverImageUrl" placeholder="https://..." />
+              <div class="cover-input-group" style="display: flex; gap: 8px;">
+                <input id="post-cover" type="text" formControlName="coverImageUrl" placeholder="https://..." style="flex: 1;" />
+                <button type="button" class="btn btn--soft" style="padding: 8px 12px;" (click)="coverFileInput.click()" [disabled]="isUploading()">
+                  {{ isUploading() ? '...' : '📁' }}
+                </button>
+                <input #coverFileInput type="file" (change)="onCoverFileSelected($event)" accept="image/*" style="display: none" />
+              </div>
             </div>
           </div>
 
@@ -123,6 +138,12 @@
       <section class="sidebar-card">
         <p class="sidebar-card__eyebrow">Live preview</p>
         <div class="preview-card">
+          <img
+            *ngIf="previewCoverUrl()"
+            [src]="previewCoverUrl()"
+            class="preview-card__cover"
+            alt="Cover preview"
+          />
           <div class="preview-card__meta">
             <span class="preview-badge">{{ previewCategory() }}</span>
             <span>{{ readTime() }} min read</span>
@@ -153,10 +174,6 @@
         </div>
       </section>
 
-      <section class="sidebar-card">
-        <p class="sidebar-card__eyebrow">Deployment note</p>
-        <p class="sidebar-copy">{{ deploymentNote }}</p>
-      </section>
     </aside>
   </div>
 </section>

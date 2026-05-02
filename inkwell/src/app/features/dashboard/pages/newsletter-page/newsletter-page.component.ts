@@ -3,8 +3,10 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal, computed } 
 import { AuthSessionService } from '../../../auth/data-access/auth-session.service';
 import { NewsletterApiService, Subscriber } from '../../../author/data-access/newsletter-api.service';
 import { PostApiService } from '../../../author/data-access/post-api.service';
+import { AuthApiService } from '../../../auth/data-access/auth-api.service';
 import { finalize } from 'rxjs';
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '../../../../shared/services/toast.service';
 
 @Component({
   selector: 'app-newsletter-page',
@@ -16,15 +18,17 @@ import { FormsModule } from '@angular/forms';
 })
 export class NewsletterPageComponent implements OnInit {
   private readonly authSession = inject(AuthSessionService);
+  private readonly authApi = inject(AuthApiService);
   private readonly newsletterApi = inject(NewsletterApiService);
   private readonly postApi = inject(PostApiService);
+  private readonly toast = inject(ToastService);
 
   readonly subscribers = signal<Subscriber[]>([]);
   readonly publishedPosts = computed(() => 
     this.postApi.authorPosts().filter(p => p.status === 'PUBLISHED')
   );
   
-  readonly subscribersCount = signal(0);
+  readonly subscribersCount = computed(() => this.subscribers().length);
   readonly activeCampaigns = signal(3); // Mock
   readonly openRate = signal(68); // Mock
   
@@ -48,11 +52,17 @@ export class NewsletterPageComponent implements OnInit {
   loadData() {
     this.isLoading.set(true);
     
-    // Load subscribers
-    this.newsletterApi.getSubscribers().subscribe({
-      next: (subs) => {
-        this.subscribers.set(subs);
-        this.subscribersCount.set(subs.length);
+    // Load subscribers (using real Followers from Auth service)
+    this.authApi.getFollowers().subscribe({
+      next: (users) => {
+        const approvedUsers = users.filter(u => u.followStatus === 'APPROVED');
+        const mapped: Subscriber[] = approvedUsers.map(u => ({
+          id: u.userId,
+          email: u.email || u.username,
+          status: 'ACTIVE',
+          createdAt: u.createdAt || new Date().toISOString()
+        }));
+        this.subscribers.set(mapped);
         this.isLoading.set(false);
       },
       error: () => {
@@ -75,7 +85,7 @@ export class NewsletterPageComponent implements OnInit {
     const post = this.publishedPosts().find(p => p.id.toString() === this.selectedPostId());
     if (!post) return;
 
-    const link = `http://localhost:4200/blog/${post.id}`;
+    const link = `${window.location.origin}/blog/${post.id}`;
     
     this.isSending.set(true);
     this.alertMessage.set(null);
@@ -85,7 +95,7 @@ export class NewsletterPageComponent implements OnInit {
       .pipe(finalize(() => this.isSending.set(false)))
       .subscribe({
         next: () => {
-          this.alertMessage.set({ type: 'success', text: `Campaign for "${post.title}" launched successfully!` });
+          this.toast.success(`Campaign for "${post.title}" launched successfully!`);
           this.activeCampaigns.update(c => c + 1);
           
           // Add to history
@@ -99,7 +109,7 @@ export class NewsletterPageComponent implements OnInit {
           this.customMessage.set('');
         },
         error: () => {
-          this.alertMessage.set({ type: 'error', text: 'Failed to launch campaign. Please try again later.' });
+          this.toast.error('Failed to launch campaign. Please try again later.');
         }
       });
   }

@@ -242,14 +242,9 @@ export const routes: Routes = [
       {
         path: 'dashboard/topics',
         canActivate: [requireRole(['AUTHOR', 'ADMIN'])],
-        data: {
-          title: 'Topics',
-          description: 'Topic and taxonomy management belongs here once categories and trending tags are fully connected to the author workflow.',
-          nextStep: 'Use the category-service endpoints to show categories, tags, and trending topic suggestions in one place.',
-        },
         loadComponent: () =>
-          import('./features/dashboard/pages/dashboard-placeholder-page/dashboard-placeholder-page.component').then(
-            (m) => m.DashboardPlaceholderPageComponent,
+          import('./features/dashboard/pages/topics-page/topics-page.component').then(
+            (m) => m.TopicsPageComponent,
           ),
       },
     ],

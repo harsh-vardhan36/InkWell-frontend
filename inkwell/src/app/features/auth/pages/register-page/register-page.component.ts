@@ -8,6 +8,7 @@ import {
 } from '../../components/social-login-buttons/social-login-buttons.component';
 import { AuthApiService } from '../../data-access/auth-api.service';
 import { AuthSessionService } from '../../data-access/auth-session.service';
+import { ToastService } from '../../../../shared/services/toast.service';
 
 const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).*$/;
 
@@ -29,6 +30,7 @@ export class RegisterPageComponent {
   private readonly router = inject(Router);
   private readonly authApi = inject(AuthApiService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly toast = inject(ToastService);
 
   readonly showPassword = signal(false);
   readonly showConfirmPassword = signal(false);
@@ -43,6 +45,9 @@ export class RegisterPageComponent {
   readonly otpSuccess = signal<string | null>(null);
   readonly resendCooldown = signal(0);
   readonly isResending = signal(false);
+  readonly showTermsModal = signal(false);
+  readonly termsType = signal<'tos' | 'privacy'>('tos');
+
 
   readonly form = this.fb.nonNullable.group(
     {
@@ -84,6 +89,18 @@ export class RegisterPageComponent {
   togglePassword() { this.showPassword.update(v => !v); }
   toggleConfirmPassword() { this.showConfirmPassword.update(v => !v); }
 
+  openTerms(type: 'tos' | 'privacy', event?: Event) {
+    event?.preventDefault();
+    this.termsType.set(type);
+    this.showTermsModal.set(true);
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeTerms() {
+    this.showTermsModal.set(false);
+    document.body.style.overflow = '';
+  }
+
   onSubmit() {
     this.submitError.set(null);
     if (this.form.invalid) {
@@ -100,6 +117,7 @@ export class RegisterPageComponent {
           this.registeredEmail.set(email);
           this.currentStep.set('otp');
           this.startCooldown();
+          this.toast.success('Verification code sent! Please check your email.');
         },
         error: (error) => {
           const message =
@@ -113,6 +131,7 @@ export class RegisterPageComponent {
               ? 'Email already registered.'
               : 'Unable to create your account right now. Please try again.');
           this.submitError.set(message);
+          this.toast.error(message);
         },
       });
   }
@@ -249,6 +268,7 @@ export class RegisterPageComponent {
       .pipe(
         switchMap(() => {
           this.otpSuccess.set('Verified! Signing you in...');
+          this.toast.success('Account verified successfully!');
           return this.authApi.login({ email, password, rememberMe: true });
         }),
         switchMap((loginResponse) => {
@@ -280,6 +300,7 @@ export class RegisterPageComponent {
                 ? 'OTP has expired. Please request a new one.'
                 : 'Verification failed. Please try again.');
           this.otpError.set(message);
+          this.toast.error(message);
         },
       });
   }

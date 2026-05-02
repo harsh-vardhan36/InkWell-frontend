@@ -8,6 +8,7 @@ import {
 } from '../../components/social-login-buttons/social-login-buttons.component';
 import { AuthApiService } from '../../data-access/auth-api.service';
 import { AuthSessionService } from '../../data-access/auth-session.service';
+import { ToastService } from '../../../../shared/services/toast.service';
 
 @Component({
   selector: 'app-login-page',
@@ -22,6 +23,7 @@ export class LoginPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly authApi = inject(AuthApiService);
   private readonly authSession = inject(AuthSessionService);
+  private readonly toast = inject(ToastService);
 
   readonly showPassword = signal(false);
   readonly submitted = signal(false);
@@ -68,6 +70,7 @@ export class LoginPageComponent {
       .subscribe({
         next: (user) => {
           this.authSession.saveUser(user);
+          this.toast.success(`Welcome back, ${user.fullName}!`);
           void this.router.navigateByUrl(this.authSession.getPostLoginRedirectUrl());
         },
         error: (error) => {
@@ -83,6 +86,7 @@ export class LoginPageComponent {
               : 'Unable to sign in right now. Please try again.');
 
           this.submitError.set(message);
+          this.toast.error(message);
         },
       });
   }

@@ -18,13 +18,27 @@
 
       <div class="hero__stats">
         <div class="stat-pill">
-          <span class="stat-pill__label">Profile strength</span>
-          <strong>{{ profileCompleteness() }}%</strong>
+          <span class="stat-pill__label">Followers</span>
+          <strong>{{ followerCount() }}</strong>
         </div>
         <div class="stat-pill">
-          <span class="stat-pill__label">Primary email</span>
-          <strong>{{ userEmail() || 'Not available' }}</strong>
+          <span class="stat-pill__label">Following</span>
+          <strong>{{ followingCount() }}</strong>
         </div>
+        <div class="stat-pill">
+          <span class="stat-pill__label">Stories</span>
+          <strong>{{ storyCount() }}</strong>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill__label">Total Reads</span>
+          <strong>{{ totalReads() }}</strong>
+        </div>
+      </div>
+
+      <div class="hero__actions" *ngIf="!isOwnProfile()">
+        <button class="btn" [class.btn--primary]="!isFollowing()" [class.btn--secondary]="isFollowing()" (click)="toggleFollow()">
+          {{ isFollowing() ? '✓ Following' : 'Follow' }}
+        </button>
       </div>
     </div>
   </header>
@@ -43,18 +57,18 @@
         <div class="analytics-preview" *ngIf="isOwnProfile()" [class.analytics-preview--locked]="userPlan() === 'FREE'" (click)="userPlan() === 'FREE' ? null : null">
           <div class="analytics-grid">
             <div class="analytics-card">
-              <span class="analytics-card__label">Total Views</span>
-              <strong class="analytics-card__value">12.4K</strong>
+              <span class="analytics-card__label">Total Reads</span>
+              <strong class="analytics-card__value">{{ totalReads() }}</strong>
               <div class="analytics-card__trend positive">+12%</div>
             </div>
             <div class="analytics-card">
-              <span class="analytics-card__label">Total Claps</span>
-              <strong class="analytics-card__value">1,842</strong>
+              <span class="analytics-card__label">Stories</span>
+              <strong class="analytics-card__value">{{ storyCount() }}</strong>
               <div class="analytics-card__trend positive">+5%</div>
             </div>
             <div class="analytics-card">
-              <span class="analytics-card__label">Comments</span>
-              <strong class="analytics-card__value">342</strong>
+              <span class="analytics-card__label">Followers</span>
+              <strong class="analytics-card__value">{{ followerCount() }}</strong>
               <div class="analytics-card__trend neutral">0%</div>
             </div>
           </div>
@@ -82,17 +96,17 @@
         <div *ngIf="!isOwnProfile()" class="profile-view">
           <div class="profile-bio-box">
              <h3>About</h3>
-             <p>{{ user()?.bio || 'This author hasn\'t added a bio yet.' }}</p>
+             <p>{{ viewedUser()?.bio || 'This author hasn\'t added a bio yet.' }}</p>
           </div>
           
           <div class="profile-details-grid">
              <div class="detail-item">
                 <label>Role</label>
-                <span>{{ user()?.role }}</span>
+                <span>{{ viewedUser()?.role }}</span>
              </div>
              <div class="detail-item">
                 <label>Joined</label>
-                <span>{{ user()?.createdAt | date:'mediumDate' }}</span>
+                <span>{{ viewedUser()?.createdAt | date:'mediumDate' }}</span>
              </div>
           </div>
         </div>
@@ -227,15 +241,15 @@
         <div class="mini-list">
           <div class="mini-item">
             <span>Provider</span>
-            <strong>{{ user()?.provider ?? 'LOCAL' }}</strong>
+            <strong>{{ viewedUser()?.provider ?? 'LOCAL' }}</strong>
           </div>
           <div class="mini-item">
             <span>Status</span>
-            <strong>{{ user()?.isActive === false ? 'Inactive' : 'Active' }}</strong>
+            <strong>{{ viewedUser()?.isActive === false ? 'Inactive' : 'Active' }}</strong>
           </div>
           <div class="mini-item">
             <span>Joined</span>
-            <strong>{{ user()?.createdAt ? (user()?.createdAt | date:'mediumDate') : 'Recently' }}</strong>
+            <strong>{{ viewedUser()?.createdAt ? (viewedUser()?.createdAt | date:'mediumDate') : 'Recently' }}</strong>
           </div>
         </div>
       </section>

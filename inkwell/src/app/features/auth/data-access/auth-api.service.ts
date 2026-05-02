@@ -83,6 +83,12 @@ export interface AuthUser {
   provider?: 'LOCAL' | 'GOOGLE' | 'GITHUB';
   isActive?: boolean;
   createdAt?: string;
+  followerCount?: number;
+  followingCount?: number;
+  storyCount?: number;
+  totalReads?: number;
+  isFollowing?: boolean;
+  followStatus?: string;
 }
 
 export interface AdminUserStatusPayload {
@@ -140,6 +146,30 @@ export class AuthApiService {
 
   updateProfile(user: Partial<AuthUser>): Observable<AuthUser> {
     return this.putWithFallback<AuthUser>('/profile', user);
+  }
+
+  followUser(userId: number | string): Observable<{ message: string }> {
+    return this.postWithFallback<{ message: string }>(`/follow/${userId}`, {});
+  }
+
+  unfollowUser(userId: number | string): Observable<{ message: string }> {
+    return this.postWithFallback<{ message: string }>(`/unfollow/${userId}`, {});
+  }
+
+  isFollowing(userId: number | string): Observable<{ following: boolean }> {
+    return this.getWithFallback<{ following: boolean }>(`/is-following/${userId}`);
+  }
+
+  getFollowers(): Observable<AuthUser[]> {
+    return this.getWithFallback<AuthUser[]>('/followers');
+  }
+
+  approveFollow(followerId: number | string): Observable<{ message: string }> {
+    return this.postWithFallback<{ message: string }>(`/follow/${followerId}/approve`, {});
+  }
+
+  rejectFollow(followerId: number | string): Observable<{ message: string }> {
+    return this.postWithFallback<{ message: string }>(`/follow/${followerId}/reject`, {});
   }
 
   changePassword(payload: ChangePasswordRequest): Observable<{ message?: string }> {

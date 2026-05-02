@@ -13,9 +13,12 @@ import {
   PLATFORM_ID,
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { PostApiService } from '../../../author/data-access/post-api.service';
 import { take } from 'rxjs';
+import { computed } from '@angular/core';
+import { AuthApiService } from '../../../auth/data-access/auth-api.service';
+import { AuthSessionService } from '../../../auth/data-access/auth-session.service';
 
 @Component({
   selector: 'app-home-page',
@@ -81,7 +84,10 @@ import { take } from 'rxjs';
           <!-- Featured large card -->
           <a class="picks-card picks-card--featured" [routerLink]="['/blog', picks()[0].id]" #revealEl>
             <div class="picks-card__cover picks-card__cover--featured">
-              <div class="picks-card__cover-inner">{{ picks()[0].coverEmoji }}</div>
+              <img *ngIf="picks()[0].coverImageUrl; else featuredEmoji" [src]="picks()[0].coverImageUrl" class="picks-card__img" alt="featured">
+              <ng-template #featuredEmoji>
+                <div class="picks-card__cover-inner">{{ picks()[0].coverEmoji }}</div>
+              </ng-template>
               <div class="picks-card__cover-overlay"></div>
             </div>
             <div class="picks-card__body">
@@ -109,7 +115,10 @@ import { take } from 'rxjs';
           <ng-container *ngFor="let post of picks().slice(1, 3)">
             <a class="picks-card" [routerLink]="['/blog', post.id]" #revealEl>
               <div class="picks-card__cover">
-                <div class="picks-card__cover-inner">{{ post.coverEmoji }}</div>
+                <img *ngIf="post.coverImageUrl; else pickEmoji" [src]="post.coverImageUrl" class="picks-card__img" alt="pick">
+                <ng-template #pickEmoji>
+                  <div class="picks-card__cover-inner">{{ post.coverEmoji }}</div>
+                </ng-template>
               </div>
               <div class="picks-card__body">
                 <div class="picks-card__meta">
@@ -190,7 +199,10 @@ import { take } from 'rxjs';
                 </div>
               </div>
               <div class="trending-item__cover">
-                <div class="trending-item__emoji">{{ post.coverEmoji }}</div>
+                <img *ngIf="post.coverImageUrl; else trendingEmoji" [src]="post.coverImageUrl" class="trending-item__img" alt="cover">
+                <ng-template #trendingEmoji>
+                   <div class="trending-item__emoji">{{ post.coverEmoji }}</div>
+                </ng-template>
               </div>
             </a>
           </div>
@@ -207,8 +219,10 @@ import { take } from 'rxjs';
               <div class="writer-row" *ngFor="let w of suggestedWriters()">
                 <div class="avatar avatar-md" [style.background]="w.gradient">{{ w.initials }}</div>
                 <div class="writer-row__info">
-                  <div class="writer-row__name">{{ w.name }}</div>
-                  <div class="writer-row__bio">{{ w.bio }}</div>
+                  <a [routerLink]="['/profile', w.userId]" class="writer-row__name">{{ w.name }}</a>
+                  <div class="writer-row__bio">
+                    {{ w.bio }} · {{ w.followers | number }} followers
+                  </div>
                 </div>
                 <button class="follow-btn" [class.follow-btn--following]="w.following" (click)="toggleFollow(w)">
                   {{ w.following ? 'Following' : 'Follow' }}
@@ -244,38 +258,7 @@ import { take } from 'rxjs';
       </div>
     </section>
 
-    <footer class="footer">
-      <div class="container">
-        <div class="footer__grid">
-          <div class="footer__brand-col">
-            <div class="footer__logo">
-              <div class="footer__logo-icon">✒</div>
-              <span class="footer__logo-name">InkWell</span>
-            </div>
-            <p class="footer__desc">A publishing platform built for writers who care about craft, clarity, and connection.</p>
-          </div>
-          <div class="footer__col">
-            <div class="footer__col-title">Product</div>
-            <a class="footer__link" routerLink="/feed">Explore</a>
-            <a class="footer__link" routerLink="/write">Write</a>
-            <a class="footer__link" routerLink="/pricing">Pricing</a>
-          </div>
-          <div class="footer__col">
-            <div class="footer__col-title">Company</div>
-            <a class="footer__link" href="#">About</a>
-            <a class="footer__link" href="#">Blog</a>
-          </div>
-          <div class="footer__col">
-            <div class="footer__col-title">Legal</div>
-            <a class="footer__link" href="#">Privacy</a>
-            <a class="footer__link" href="#">Terms</a>
-          </div>
-        </div>
-        <div class="footer__bottom">
-          <div class="footer__copy">© 2025 InkWell. Built for writers.</div>
-        </div>
-      </div>
-    </footer>
+    <!-- Footer removed to avoid duplication with PublicShell footer -->
   `,
   styles: [`
     :host { display: block; }
@@ -300,7 +283,9 @@ import { take } from 'rxjs';
     .picks-card { background: var(--iw-surface-solid); border: 1px solid var(--iw-border); border-radius: 16px; overflow: hidden; text-decoration: none; color: inherit; transition: transform 0.2s; display: flex; flex-direction: column; }
     .picks-card:hover { transform: translateY(-4px); border-color: var(--iw-brand); box-shadow: var(--iw-shadow-md); }
     .picks-card--featured { grid-row: span 2; }
-    .picks-card__cover { aspect-ratio: 16/9; background: var(--iw-bg-deep); display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+    .picks-card__cover { aspect-ratio: 16/9; background: var(--iw-bg-deep); display: flex; align-items: center; justify-content: center; font-size: 3rem; overflow: hidden; }
+    .picks-card__img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
+    .picks-card:hover .picks-card__img { transform: scale(1.05); }
     .picks-card__body { padding: 24px; flex: 1; display: flex; flex-direction: column; }
     .picks-card__title { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 12px; color: var(--iw-ink); }
     .picks-card__excerpt { color: var(--iw-muted); font-size: 0.95rem; line-height: 1.6; }
@@ -318,13 +303,15 @@ import { take } from 'rxjs';
     .trending-item__num { font-size: 2rem; color: var(--iw-faint); font-family: var(--font-display); opacity: 0.5; }
     .trending-item__title { font-family: var(--font-display); font-size: 1.1rem; color: var(--iw-ink); }
     .trending-item__emoji { width: 60px; height: 60px; background: var(--iw-bg-deep); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .trending-item__img { width: 60px; height: 60px; object-fit: cover; border-radius: 12px; }
 
     .trending-sidebar { display: flex; flex-direction: column; gap: 24px; }
     .sidebar-widget { background: var(--iw-surface-solid); border: 1px solid var(--iw-border); border-radius: 20px; padding: 24px; }
     .sidebar-widget__title { font-size: 0.9rem; font-weight: 700; color: var(--iw-ink-2); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
     .sidebar-widget--brand { background: var(--iw-brand-gradient); color: #fff; border: none; box-shadow: var(--iw-shadow-glow); }
     .writer-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-    .writer-row__name { font-size: 0.88rem; font-weight: 700; color: var(--iw-ink); }
+    .writer-row__name { font-size: 0.88rem; font-weight: 700; color: var(--iw-ink); text-decoration: none; transition: color 0.2s; cursor: pointer; }
+    .writer-row__name:hover { color: var(--iw-brand); }
     .writer-row__bio { font-size: 0.75rem; color: var(--iw-muted); }
     .follow-btn { margin-left: auto; padding: 6px 16px; border-radius: 100px; border: 1.5px solid var(--iw-brand); color: var(--iw-brand); background: transparent; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; }
     .follow-btn:hover { background: var(--iw-brand-soft); }
@@ -337,14 +324,7 @@ import { take } from 'rxjs';
     .cta-band__actions { display: flex; flex-direction: column; gap: 16px; align-items: center; }
     .cta-band__link { color: #fff; text-decoration: underline; font-weight: 600; font-size: 0.9rem; }
 
-    .footer { padding: 80px 0 40px; border-top: 1px solid var(--iw-border); background: var(--iw-bg-deep); }
-    .footer__grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 48px; }
-    .footer__logo { display: flex; align-items: center; gap: 12px; font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 16px; color: var(--iw-ink); }
-    .footer__desc { color: var(--iw-muted); font-size: 0.9rem; line-height: 1.6; }
-    .footer__col-title { font-weight: 700; color: var(--iw-ink-2); margin-bottom: 20px; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
-    .footer__link { display: block; color: var(--iw-muted); text-decoration: none; margin-bottom: 12px; transition: color 0.2s; }
-    .footer__link:hover { color: var(--iw-brand); }
-    .footer__copy { color: var(--iw-faint); font-size: 0.85rem; }
+    .footer-removed { display: none; }
 
     .picks-card { opacity: 0; transform: translateY(20px); transition: all 0.6s ease-out; }
     .picks-card.is-visible { opacity: 1; transform: translateY(0); }
@@ -374,7 +354,12 @@ export class HomePageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly zone = inject(NgZone);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly postApi = inject(PostApiService);
+  private readonly authApiService = inject(AuthApiService);
+  private readonly authSession = inject(AuthSessionService);
+  private readonly router = inject(Router);
   private observer: IntersectionObserver | null = null;
+
+  readonly isGuest = computed(() => !this.authSession.isAuthenticated());
 
   @ViewChildren('revealEl') revealEls!: QueryList<ElementRef<HTMLElement>>;
 
@@ -399,27 +384,51 @@ export class HomePageComponent implements OnInit, AfterViewInit, OnDestroy {
     { icon: '📈', label: 'Business',    count: '4.0k' },
   ];
 
-  protected readonly suggestedWriters = signal([
-    { name: 'Priya Mehta',    initials: 'PM', bio: 'Culture & Design',  gradient: 'linear-gradient(135deg,#7c3d8a,#3d1a50)', following: false },
-    { name: 'Jatin Kumar',    initials: 'JK', bio: 'Tech & Society',    gradient: 'linear-gradient(135deg,#2a8a6a,#0f3d28)', following: false },
-    { name: 'Ananya Lal',     initials: 'AL', bio: 'Fiction & Poetry',  gradient: 'linear-gradient(135deg,#c9893a,#9a5f1a)', following: false },
-    { name: 'Siddharth M.',   initials: 'SM', bio: 'Philosophy',        gradient: 'linear-gradient(135deg,#3d78d8,#1a3a7a)', following: false },
-  ]);
+  private readonly followingNames = signal<Set<string>>(new Set());
+
+  protected readonly suggestedWriters = computed(() => {
+    const posts = this.trending();
+    const followed = this.followingNames();
+    const uniqueAuthors = new Map<string, any>();
+    
+    posts.forEach(p => {
+      // Use authorName as key for uniqueness
+      if (!uniqueAuthors.has(p.authorName)) {
+        uniqueAuthors.set(p.authorName, {
+          userId: p.authorId || p.author?.id,
+          name: p.authorName,
+          initials: p.initials,
+          bio: p.category || 'InkWell Creator',
+          gradient: p.authorGradient,
+          following: followed.has(p.authorName),
+          followers: p.followerCount || 850
+        });
+      }
+    });
+    
+    return Array.from(uniqueAuthors.values()).slice(0, 4);
+  });
 
   ngOnInit() {
     this.postApi.listPosts().pipe(take(1)).subscribe({
       next: (posts) => {
-        const published = posts.filter((p: any) => !p.status || p.status.toLowerCase() === 'published');
+        const published = (posts as any[]).filter((p: any) => !p.status || p.status.toLowerCase() === 'published');
         const mapped = published.map((p: any) => this.mapPostForDisplay(p));
-        
         this.picks.set(mapped.slice(0, 3));
-        this.trending.set(mapped.slice(3, 8));
         
         if (isPlatformBrowser(this.platformId)) {
           setTimeout(() => this.initObserver(), 300);
         }
       },
       error: (err) => console.error('Failed to load home posts', err)
+    });
+
+    this.postApi.getTrendingPosts().pipe(take(1)).subscribe({
+      next: (posts) => {
+        const mapped = (posts as any[]).map(p => this.mapPostForDisplay(p)).slice(0, 7);
+        this.trending.set(mapped);
+      },
+      error: (err) => console.error('Failed to load trending posts', err)
     });
   }
 
@@ -443,7 +452,8 @@ export class HomePageComponent implements OnInit, AfterViewInit, OnDestroy {
       initials,
       authorName,
       displayDate: p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently',
-      viewCount: p.viewCount || 0
+      viewCount: p.viewCount || 0,
+      coverImageUrl: p.coverImageUrl || p.coverUrl || p.featuredImageUrl
     };
   }
 
@@ -490,8 +500,37 @@ export class HomePageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   toggleFollow(writer: any): void {
-    this.suggestedWriters.update(list =>
-      list.map(w => w.name === writer.name ? { ...w, following: !w.following } : w)
-    );
+    if (this.isGuest()) {
+      void this.router.navigate(['/login']);
+      return;
+    }
+
+    const name = writer.name;
+    const userId = writer.userId;
+    if (!userId) return;
+
+    const currentlyFollowing = this.followingNames().has(name);
+
+    if (currentlyFollowing) {
+      this.authApiService.unfollowUser(userId).subscribe({
+        next: () => {
+          this.followingNames.update(set => {
+            const newSet = new Set(set);
+            newSet.delete(name);
+            return newSet;
+          });
+        }
+      });
+    } else {
+      this.authApiService.followUser(userId).subscribe({
+        next: () => {
+          this.followingNames.update(set => {
+            const newSet = new Set(set);
+            newSet.add(name);
+            return newSet;
+          });
+        }
+      });
+    }
   }
 }

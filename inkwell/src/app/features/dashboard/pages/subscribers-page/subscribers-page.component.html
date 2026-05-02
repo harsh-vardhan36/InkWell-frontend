@@ -74,7 +74,25 @@
             </td>
             <td>{{ formatDate(sub.createdAt) }}</td>
             <td>
-              <button class="btn-icon" title="View Details">👁️</button>
+              <div class="action-buttons">
+                <button 
+                  *ngIf="sub.status === 'PENDING'"
+                  class="btn-action btn-action--approve" 
+                  title="Approve Follower"
+                  (click)="approveSubscriber(sub.id)"
+                >
+                  ✅
+                </button>
+                <button 
+                  *ngIf="sub.status === 'PENDING'"
+                  class="btn-action btn-action--reject" 
+                  title="Reject Follower"
+                  (click)="rejectSubscriber(sub.id)"
+                >
+                  ❌
+                </button>
+                <button class="btn-icon" title="View Details">👁️</button>
+              </div>
             </td>
           </tr>
         </tbody>

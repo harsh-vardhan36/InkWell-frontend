@@ -59,6 +59,10 @@ export class PostApiService {
     return this.getWithFallback<unknown[]>(`/author/${authorId}`);
   }
 
+  getTrendingPosts(): Observable<unknown[]> {
+    return this.getWithFallback<unknown[]>('/trending');
+  }
+
   getPost(id: number | string): Observable<unknown> {
     return this.getWithFallback<unknown>(`/${id}`);
   }

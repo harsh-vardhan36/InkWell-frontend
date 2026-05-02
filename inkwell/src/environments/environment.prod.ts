@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://api.inkwell.com',
+  apiBaseUrl: 'http://15.206.128.235:8080',
 };

@@ -138,6 +138,12 @@
   font-size: 1rem;
 }
 
+.hero__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .layout {
   max-width: 1240px;
   margin: 0 auto;

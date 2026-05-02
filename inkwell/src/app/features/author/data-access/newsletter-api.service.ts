@@ -19,9 +19,6 @@ export class NewsletterApiService {
   }
 
   notifyNewPost(title: string, link: string): Observable<void> {
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('link', link);
-    return this.http.post<void>(`${this.baseUrl}/notify-new-post`, formData);
+    return this.http.post<void>(`${this.baseUrl}/notify-new-post`, { title, link });
   }
 }

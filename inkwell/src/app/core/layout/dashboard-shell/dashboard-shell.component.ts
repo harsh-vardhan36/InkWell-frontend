@@ -14,6 +14,7 @@ import { PostApiService } from '../../../features/author/data-access/post-api.se
 import { ThemeService } from '../../theme/theme.service';
 import { NotificationApiService, Notification } from '../../../features/dashboard/data-access/notification-api.service';
 import { catchError, of } from 'rxjs';
+import { ToastService } from '../../../shared/services/toast.service';
 
 interface NavItem {
   icon: string;
@@ -314,6 +315,7 @@ export class DashboardShellComponent implements OnInit {
   private readonly postApi = inject(PostApiService);
   private readonly themeService = inject(ThemeService);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   sidebarCollapsed = signal(false);
   mobileOpen = signal(false);
@@ -395,6 +397,7 @@ export class DashboardShellComponent implements OnInit {
       this.notifications.update(list => 
         list.map(n => ({ ...n, isRead: true }))
       );
+      this.toast.info('All notifications marked as read.');
     });
   }
 
@@ -406,6 +409,7 @@ export class DashboardShellComponent implements OnInit {
     this.authApi.logout().subscribe({
       next: () => {
         this.authSession.clearToken();
+        this.toast.info('Signed out successfully.');
         void this.router.navigate(['/login']);
       },
       error: () => {

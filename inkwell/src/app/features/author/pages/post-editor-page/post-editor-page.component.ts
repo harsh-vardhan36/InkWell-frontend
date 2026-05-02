@@ -9,6 +9,8 @@ import {
   PostApiService,
   PostEditorPayload,
 } from '../../data-access/post-api.service';
+import { MediaApiService } from '../../data-access/media-api.service';
+import { ToastService } from '../../../../shared/services/toast.service';
 
 type EditorMode = 'markdown' | 'rich';
 
@@ -25,6 +27,8 @@ export class PostEditorPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly postApi = inject(PostApiService);
   private readonly categoryApi = inject(CategoryApiService);
+  private readonly mediaApi = inject(MediaApiService);
+  private readonly toast = inject(ToastService);
 
   readonly mode = signal<EditorMode>('markdown');
   readonly categories = signal<CategoryOption[]>([]);
@@ -33,6 +37,7 @@ export class PostEditorPageComponent implements OnInit {
   readonly isLoading = signal(true);
   readonly isSavingDraft = signal(false);
   readonly isPublishing = signal(false);
+  readonly isUploading = signal(false);
   readonly saveMessage = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
   readonly previewTitle = computed(() => this.form.controls.title.value.trim() || 'Untitled story');
@@ -49,6 +54,7 @@ export class PostEditorPageComponent implements OnInit {
     return selected?.name ?? 'Uncategorized';
   });
   readonly previewTags = computed(() => this.parseTags(this.form.controls.tags.value).slice(0, 4));
+  readonly previewCoverUrl = computed(() => this.form.controls.coverImageUrl.value.trim());
 
   readonly form = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.minLength(3)]],
@@ -67,8 +73,6 @@ export class PostEditorPageComponent implements OnInit {
   });
 
   readonly readTime = computed(() => Math.max(1, Math.ceil(this.wordCount() / 220)));
-  readonly deploymentNote =
-    'Media upload will stay disabled in deployment until AWS S3 is configured for the media service.';
 
   ngOnInit() {
     const routeId = this.route.snapshot.paramMap.get('id');
@@ -101,7 +105,7 @@ export class PostEditorPageComponent implements OnInit {
     this.mode.set(mode);
   }
 
-  insertSnippet(type: 'code' | 'quote' | 'image') {
+  insertSnippet(type: 'code' | 'quote' | 'image', url?: string) {
     const control = this.form.controls.content;
     const current = control.value.trimEnd();
 
@@ -110,10 +114,59 @@ export class PostEditorPageComponent implements OnInit {
         ? '\n\n```ts\n// Add a useful example here\n```\n'
         : type === 'quote'
           ? '\n\n> Add a pull-quote that deserves emphasis.\n'
-          : '\n\n![Media placeholder](https://example.com/cover.jpg)\n';
+          : `\n\n![Media](${url ?? 'https://example.com/cover.jpg'})\n`;
 
     control.setValue(`${current}${snippet}`);
     control.markAsDirty();
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+
+    const file = input.files[0];
+    this.isUploading.set(true);
+    this.errorMessage.set(null);
+
+    this.mediaApi.upload(file)
+      .pipe(finalize(() => {
+        this.isUploading.set(false);
+        input.value = ''; // clear input
+      }))
+      .subscribe({
+        next: (res) => {
+          this.insertSnippet('image', res.fileUrl);
+          this.toast.success('Image uploaded and inserted successfully.');
+        },
+        error: (err) => {
+          this.errorMessage.set('Failed to upload image. Please try again.');
+          console.error('Upload error:', err);
+        }
+      });
+  }
+
+  onCoverFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+
+    const file = input.files[0];
+    this.isUploading.set(true);
+
+    this.mediaApi.upload(file)
+      .pipe(finalize(() => {
+        this.isUploading.set(false);
+        input.value = '';
+      }))
+      .subscribe({
+        next: (res) => {
+          this.form.patchValue({ coverImageUrl: res.fileUrl });
+          this.toast.success('Cover image updated.');
+        },
+        error: (err) => {
+          this.errorMessage.set('Failed to upload cover image.');
+          console.error('Upload error:', err);
+        }
+      });
   }
 
   applySuggestedTag(tag: string) {
@@ -195,6 +248,7 @@ export class PostEditorPageComponent implements OnInit {
               ? 'Post published successfully.'
               : 'Draft saved successfully.',
           );
+          this.toast.success(mode === 'publish' ? 'Story published!' : 'Draft saved.');
         },
         error: (error) => {
           this.errorMessage.set(
@@ -202,6 +256,7 @@ export class PostEditorPageComponent implements OnInit {
               (error instanceof Error ? error.message : null) ??
               `Unable to ${mode === 'publish' ? 'publish' : 'save'} this post right now.`,
           );
+          this.toast.error(this.errorMessage() ?? 'Something went wrong.');
         },
       });
   }

@@ -429,6 +429,7 @@
   color: var(--iw-muted);
   cursor: pointer;
   line-height: 1.5;
+  user-select: none;
 }
 
 .auth-checkbox-terms input[type='checkbox'] {
@@ -894,4 +895,99 @@
     font-size: 1.15rem;
     border-radius: var(--r-sm);
   }
+}
+/* ════════════════════════════════════════════════
+   TERMS & PRIVACY MODAL
+   Premium overlay & card
+════════════════════════════════════════════════ */
+.terms-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 10, 5, 0.45);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeInModal 0.3s ease both;
+}
+
+.terms-modal {
+  width: 100%;
+  max-width: 600px;
+  background: var(--iw-bg);
+  border: 1px solid var(--iw-border-2);
+  border-radius: var(--r-lg);
+  box-shadow: var(--iw-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleInModal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.terms-modal__head {
+  padding: 24px;
+  border-bottom: 1px solid var(--iw-border-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--iw-bg-alt);
+}
+
+.terms-modal__title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--iw-ink);
+}
+
+.terms-modal__close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--iw-surface-solid);
+  border: 1px solid var(--iw-border-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--iw-muted);
+  font-size: 1rem;
+  transition: var(--trans);
+}
+
+.terms-modal__close:hover {
+  background: var(--iw-brand-soft);
+  color: var(--iw-brand);
+  border-color: var(--iw-brand);
+  transform: rotate(90deg);
+}
+
+.terms-modal__body {
+  padding: 24px;
+  max-height: 60vh;
+  overflow-y: auto;
+  
+  /* Custom scrollbar */
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { 
+    background: var(--iw-border-2); 
+    border-radius: 3px; 
+  }
+}
+
+.terms-modal__foot {
+  padding: 20px 24px;
+  background: var(--iw-bg-alt);
+  border-top: 1px solid var(--iw-border-2);
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleInModal {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }

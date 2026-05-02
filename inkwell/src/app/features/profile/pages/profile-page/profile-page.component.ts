@@ -5,6 +5,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthApiService, AuthUser } from '../../../auth/data-access/auth-api.service';
 import { AuthSessionService } from '../../../auth/data-access/auth-session.service';
+import { PostApiService } from '../../../author/data-access/post-api.service';
+import { ToastService } from '../../../../shared/services/toast.service';
 
 @Component({
   selector: 'app-profile-page',
@@ -18,8 +20,16 @@ export class ProfilePageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authSession = inject(AuthSessionService);
   private readonly authApi = inject(AuthApiService);
+  private readonly postApi = inject(PostApiService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly toast = inject(ToastService);
+
+  readonly isFollowing = signal(false);
+  readonly followerCount = signal(0);
+  readonly followingCount = signal(0);
+  readonly storyCount = signal(0);
+  readonly totalReads = signal('0');
 
   readonly viewedUser = signal<AuthUser | null>(null);
   readonly isOwnProfile = computed(() => {
@@ -110,8 +120,16 @@ export class ProfilePageComponent implements OnInit {
     this.authApi.getUserProfile(userId)
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
-        next: (user) => {
+        next: (user: AuthUser) => {
           this.viewedUser.set(user);
+          this.followerCount.set(user.followerCount || 0);
+          this.followingCount.set(user.followingCount || 0);
+          
+          if (this.authSession.isAuthenticated()) {
+            this.authApi.isFollowing(userId).subscribe(res => this.isFollowing.set(res.following));
+          }
+          
+          this.fetchUserStats(userId);
         },
         error: (error) => {
           console.error('Failed to load user profile', error);
@@ -138,15 +156,15 @@ export class ProfilePageComponent implements OnInit {
         next: (user) => {
           this.authSession.saveUser(user);
           this.hydrateForms(user);
-          this.profileMessage.set('Profile updated successfully.');
+          this.toast.success('Profile updated successfully.');
         },
         error: (error) => {
-          this.profileError.set(
-            error?.integrationHint ??
+          const msg = error?.integrationHint ??
               (error instanceof Error ? error.message : null) ??
               error?.error?.message ??
-              'Unable to update your profile right now.',
-          );
+              'Unable to update your profile right now.';
+          this.profileError.set(msg);
+          this.toast.error(msg);
         },
       });
   }
@@ -180,14 +198,15 @@ export class ProfilePageComponent implements OnInit {
             confirmPassword: '',
           });
           this.passwordMessage.set(response.message ?? 'Password updated successfully.');
+          this.toast.success(response.message ?? 'Password updated successfully.');
         },
         error: (error) => {
-          this.passwordError.set(
-            error?.integrationHint ??
+          const msg = error?.integrationHint ??
               (error instanceof Error ? error.message : null) ??
               error?.error?.message ??
-              'Unable to update your password right now.',
-          );
+              'Unable to update your password right now.';
+          this.passwordError.set(msg);
+          this.toast.error(msg);
         },
       });
   }
@@ -240,6 +259,7 @@ export class ProfilePageComponent implements OnInit {
       .subscribe({
         next: () => {
           this.authSession.clearToken();
+          this.toast.info('Account deactivated successfully.');
           void this.router.navigate(['/login']);
         },
         error: (error) => {
@@ -259,6 +279,38 @@ export class ProfilePageComponent implements OnInit {
     this.dangerError.set(null);
   }
 
+  toggleFollow() {
+    if (!this.authSession.isAuthenticated()) {
+      void this.router.navigate(['/login']);
+      return;
+    }
+
+    const userId = this.viewedUser()?.userId;
+    if (!userId) return;
+
+    if (this.isFollowing()) {
+      this.authApi.unfollowUser(userId).subscribe(() => {
+        this.isFollowing.set(false);
+        this.followerCount.update(c => Math.max(0, c - 1));
+      });
+    } else {
+      this.authApi.followUser(userId).subscribe(() => {
+        this.isFollowing.set(true);
+        this.followerCount.update(c => c + 1);
+      });
+    }
+  }
+
+  private fetchUserStats(userId: string | number) {
+    this.postApi.listAuthorPosts(userId).subscribe({
+      next: (posts: any[]) => {
+        this.storyCount.set(posts.length);
+        const reads = posts.reduce((sum, p) => sum + (p.viewCount || 0), 0);
+        this.totalReads.set(reads > 1000 ? (reads / 1000).toFixed(1) + 'K' : reads.toString());
+      }
+    });
+  }
+
   private loadProfile() {
     this.isLoading.set(true);
 
@@ -266,9 +318,12 @@ export class ProfilePageComponent implements OnInit {
       .getProfile()
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
-        next: (user) => {
+        next: (user: AuthUser) => {
           this.authSession.saveUser(user);
           this.hydrateForms(user);
+          this.followerCount.set(user.followerCount || 0);
+          this.followingCount.set(user.followingCount || 0);
+          this.fetchUserStats(user.userId);
         },
         error: () => {
           const currentUser = this.authSession.getUser();

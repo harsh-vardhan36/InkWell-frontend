@@ -207,9 +207,9 @@
             </span>
             <span>
               I agree to InkWell's
-              <a href="/" (click)="$event.preventDefault()">Terms of Service</a>
+              <a href="#" (click)="openTerms('tos', $event)">Terms of Service</a>
               and
-              <a href="/" (click)="$event.preventDefault()">Privacy Policy</a>
+              <a href="#" (click)="openTerms('privacy', $event)">Privacy Policy</a>
             </span>
           </label>
           <span class="auth-field__error" *ngIf="form.controls.agreeToTerms.touched && form.controls.agreeToTerms.invalid">
@@ -398,8 +398,56 @@
         </div>
 
       </div>
-
     </div>
   </main>
+
+  <!-- ══ TERMS & PRIVACY MODAL ══ -->
+  <div class="terms-modal-overlay" *ngIf="showTermsModal()" (click)="closeTerms()" aria-modal="true" role="dialog">
+    <div class="terms-modal" (click)="$event.stopPropagation()">
+      <div class="terms-modal__head">
+        <h2 class="terms-modal__title">
+          {{ termsType() === 'tos' ? 'Terms of Service' : 'Privacy Policy' }}
+        </h2>
+        <button class="terms-modal__close" (click)="closeTerms()" aria-label="Close" type="button">✕</button>
+      </div>
+
+      <div class="terms-modal__body" style="max-height: 60vh; overflow-y: auto; padding-right: 10px;">
+        <ng-container *ngIf="termsType() === 'tos'">
+          <h3 style="margin: 16px 0 8px; color: var(--iw-ink); font-size: 1.1rem;">1. Acceptance of Terms</h3>
+          <p style="margin-bottom: 16px; color: var(--iw-muted); font-size: 0.9rem; line-height: 1.6;">By creating an account on InkWell, you agree to be bound by these Terms of Service. If you do not agree, please do not use our services.</p>
+          
+          <h3 style="margin: 16px 0 8px; color: var(--iw-ink); font-size: 1.1rem;">2. Content Ownership</h3>
+          <p style="margin-bottom: 16px; color: var(--iw-muted); font-size: 0.9rem; line-height: 1.6;">You retain all ownership rights to the content you publish on InkWell. By posting, you grant us a non-exclusive, worldwide, royalty-free license to host, display, and distribute your content on the platform.</p>
+          
+          <h3 style="margin: 16px 0 8px; color: var(--iw-ink); font-size: 1.1rem;">3. Community Standards</h3>
+          <p style="margin-bottom: 16px; color: var(--iw-muted); font-size: 0.9rem; line-height: 1.6;">InkWell is a place for respectful storytellers. We have zero tolerance for hate speech, harassment, plagiarism, or spam. Accounts violating these standards will be suspended.</p>
+          
+          <h3 style="margin: 16px 0 8px; color: var(--iw-ink); font-size: 1.1rem;">4. Pro Subscriptions</h3>
+          <p style="margin-bottom: 16px; color: var(--iw-muted); font-size: 0.9rem; line-height: 1.6;">Paid subscriptions (Pro Plan) are billed according to the selected interval. You can cancel at any time, but refunds are generally not provided for partial periods unless required by law.</p>
+          
+          <h3 style="margin: 16px 0 8px; color: var(--iw-ink); font-size: 1.1rem;">5. Account Security</h3>
+          <p style="margin-bottom: 16px; color: var(--iw-muted); font-size: 0.9rem; line-height: 1.6;">You are responsible for maintaining the confidentiality of your login credentials and for all activities that occur under your account.</p>
+        </ng-container>
+
+        <ng-container *ngIf="termsType() === 'privacy'">
+          <h3 style="margin: 16px 0 8px; color: var(--iw-ink); font-size: 1.1rem;">1. Data Collection</h3>
+          <p style="margin-bottom: 16px; color: var(--iw-muted); font-size: 0.9rem; line-height: 1.6;">We collect information you provide directly to us, such as your name, email, and profile details, as well as analytics on how you interact with stories.</p>
+          
+          <h3 style="margin: 16px 0 8px; color: var(--iw-ink); font-size: 1.1rem;">2. Usage of Data</h3>
+          <p style="margin-bottom: 16px; color: var(--iw-muted); font-size: 0.9rem; line-height: 1.6;">Your data is used to personalize your experience, provide support, and improve the platform's discovery algorithms.</p>
+          
+          <h3 style="margin: 16px 0 8px; color: var(--iw-ink); font-size: 1.1rem;">3. Third-Party Sharing</h3>
+          <p style="margin-bottom: 16px; color: var(--iw-muted); font-size: 0.9rem; line-height: 1.6;">We do not sell your personal data. We only share information with trusted service providers (like Razorpay or AWS) necessary for operating the platform.</p>
+          
+          <h3 style="margin: 16px 0 8px; color: var(--iw-ink); font-size: 1.1rem;">4. Your Rights</h3>
+          <p style="margin-bottom: 16px; color: var(--iw-muted); font-size: 0.9rem; line-height: 1.6;">You have the right to access, correct, or delete your personal information at any time via your account settings.</p>
+        </ng-container>
+      </div>
+
+      <div class="terms-modal__foot" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--iw-border-2);">
+        <button class="auth-submit" (click)="closeTerms()" type="button" style="margin: 0;">I Understand</button>
+      </div>
+    </div>
+  </div>
 
 </div>

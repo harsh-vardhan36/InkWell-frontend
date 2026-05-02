@@ -22,6 +22,7 @@ import { CommentApiService, Comment } from '../../data-access/comment-api.servic
 import { FormsModule } from '@angular/forms';
 
 @Component({
+  // Triggering recompile
   selector: 'app-post-detail-page',
   standalone: true,
   imports: [CommonModule, RouterLink, FormsModule],
@@ -76,7 +77,7 @@ import { FormsModule } from '@angular/forms';
         <p class="post-lead">{{ article().summary }}</p>
 
         <!-- Author bar -->
-        <div class="post-author-bar">
+        <div class="post-author-bar" (click)="router.navigate(['/profile', article().authorId])" style="cursor: pointer;">
           <div class="avatar avatar-lg" [style.background]="article().avatarGradient || 'linear-gradient(135deg,#c9893a,#9a5f1a)'">
             {{ article().initials || 'A' }}
           </div>
@@ -116,14 +117,22 @@ import { FormsModule } from '@angular/forms';
       <!-- ── COVER IMAGE ── -->
       <div class="post-cover">
         <div class="post-cover__inner">
-          <span class="post-cover__emoji">{{ article().coverEmoji }}</span>
+          <img
+            *ngIf="article().coverImageUrl"
+            [src]="article().coverImageUrl"
+            class="post-cover__img"
+            alt="Cover Image"
+          />
+          <span *ngIf="!article().coverImageUrl" class="post-cover__emoji">
+            {{ article().coverEmoji }}
+          </span>
         </div>
         <div class="post-cover__overlay"></div>
         <div class="post-cover__caption">Cover image · InkWell</div>
       </div>
 
       <!-- ── PROSE CONTENT ── -->
-      <div class="post-content" #contentEl [innerHTML]="article().content || article().body"></div>
+      <div class="post-content" #contentEl [innerHTML]="formattedContent()"></div>
 
       <!-- ── TAGS + ENGAGEMENT ── -->
       <div class="post-engagement">
@@ -156,30 +165,30 @@ import { FormsModule } from '@angular/forms';
         </div>
         <div class="author-card__body">
           <div class="author-card__eyebrow">Written by</div>
-          <h3 class="author-card__name">{{ article().author }}</h3>
+          <h3 class="author-card__name" (click)="router.navigate(['/profile', article().authorId])" style="cursor: pointer;">{{ article().author }}</h3>
           <p class="author-card__bio">{{ article().authorBio }}</p>
           <div class="author-card__stats">
             <div class="author-card__stat">
-              <span class="author-card__stat-num">{{ (article().followerCount || 2841) + (followingAuthor() ? 1 : 0) | number }}</span>
+              <span class="author-card__stat-num">{{ (article().followerCount || 0) | number }}</span>
               <span class="author-card__stat-label">Followers</span>
             </div>
             <div class="author-card__stat">
-              <span class="author-card__stat-num">{{ article().storyCount || 18 }}</span>
+              <span class="author-card__stat-num">{{ article().storyCount || 0 }}</span>
               <span class="author-card__stat-label">Stories</span>
             </div>
             <div class="author-card__stat">
-              <span class="author-card__stat-num">{{ article().readCount || '47K' }}</span>
+              <span class="author-card__stat-num">{{ article().readCount || '0' }}</span>
               <span class="author-card__stat-label">Total reads</span>
             </div>
           </div>
           <div class="author-card__actions">
             <button
               class="follow-btn"
-              [class.follow-btn--following]="followingAuthor()"
+              [class.follow-btn--following]="article().isFollowing"
               (click)="toggleFollow()"
               [title]="isGuest() ? 'Sign in to follow' : ''"
             >
-              {{ followingAuthor() ? '✓ Following' : (isGuest() ? 'Follow 🔒' : 'Follow') }}
+              {{ article().isFollowing ? '✓ Following' : (isGuest() ? 'Follow 🔒' : 'Follow') }}
             </button>
             <a class="btn btn-ghost btn-sm" [routerLink]="['/profile', article().authorId]">View profile →</a>
           </div>
@@ -539,6 +548,20 @@ import { FormsModule } from '@angular/forms';
       font-size: clamp(4rem, 8vw, 7rem);
       user-select: none;
       filter: drop-shadow(0 8px 24px rgba(0,0,0,0.12));
+      z-index: 1;
+    }
+
+    .post-cover__img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 6s ease;
+    }
+
+    .post-cover:hover .post-cover__img {
+      transform: scale(1.05);
     }
 
     .post-cover__overlay {
@@ -570,14 +593,15 @@ import { FormsModule } from '@angular/forms';
     ════════════════════════════════ */
     .post-content {
       font-family: var(--font-prose);
-      font-size: clamp(1rem, 1.6vw, 1.15rem);
+      font-size: clamp(1.1rem, 1.8vw, 1.25rem);
       font-weight: 400;
-      line-height: 1.85;
+      line-height: 1.8;
       color: var(--iw-ink-2);
+      letter-spacing: -0.011em;
     }
 
     .post-content p {
-      margin: 0 0 1.6em;
+      margin: 0 0 1.8em;
     }
 
     .post-content p:last-child {
@@ -586,21 +610,21 @@ import { FormsModule } from '@angular/forms';
 
     .post-content h2 {
       font-family: var(--font-display);
-      font-size: clamp(1.5rem, 3vw, 2rem);
-      letter-spacing: -0.04em;
-      font-weight: 500;
+      font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+      letter-spacing: -0.045em;
+      font-weight: 600;
       color: var(--iw-ink);
-      margin: 2.2em 0 0.7em;
+      margin: 2.2em 0 0.8em;
       line-height: 1.15;
     }
 
     .post-content h3 {
       font-family: var(--font-display);
-      font-size: clamp(1.2rem, 2vw, 1.5rem);
-      letter-spacing: -0.03em;
-      font-weight: 500;
+      font-size: clamp(1.3rem, 2.2vw, 1.6rem);
+      letter-spacing: -0.035em;
+      font-weight: 600;
       color: var(--iw-ink);
-      margin: 1.8em 0 0.6em;
+      margin: 1.8em 0 0.7em;
     }
 
     .post-content strong {
@@ -615,61 +639,115 @@ import { FormsModule } from '@angular/forms';
     .post-content a {
       color: var(--iw-brand);
       text-decoration: underline;
-      text-decoration-thickness: 0.1em;
-      text-underline-offset: 0.18em;
-      transition: color 0.15s ease;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+      transition: var(--trans);
     }
 
     .post-content a:hover {
       color: var(--iw-brand-deep);
+      text-decoration-thickness: 2px;
+    }
+
+    /* Lists */
+    .post-content ul, 
+    .post-content ol {
+      margin: 0 0 1.8em 1.2em;
+      padding: 0;
+    }
+
+    .post-content li {
+      margin-bottom: 0.8em;
+      padding-left: 0.4em;
+    }
+
+    .post-content ul {
+      list-style-type: none;
+    }
+
+    .post-content ul li {
+      position: relative;
+    }
+
+    .post-content ul li::before {
+      content: "•";
+      color: var(--iw-brand);
+      font-weight: bold;
+      display: inline-block;
+      width: 1em;
+      margin-left: -1em;
+      position: absolute;
+    }
+
+    .post-content ol {
+      list-style-type: decimal;
+      color: var(--iw-brand);
+      font-weight: 600;
+    }
+
+    .post-content ol li {
+      color: var(--iw-ink-2);
+      font-weight: 400;
     }
 
     .post-content blockquote {
-      border-left: 3px solid var(--iw-brand);
-      padding: 2px 0 2px 24px;
-      margin: 2em 0;
+      border-left: 4px solid var(--iw-brand);
+      padding: 4px 0 4px 28px;
+      margin: 2.4em 0;
       font-style: italic;
-      font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+      font-size: clamp(1.15rem, 2vw, 1.4rem);
       color: var(--iw-ink);
-      line-height: 1.65;
+      line-height: 1.6;
+      background: linear-gradient(90deg, var(--iw-brand-soft) 0%, transparent 100%);
+      border-radius: 0 8px 8px 0;
     }
 
     .post-content code {
       font-family: var(--font-mono);
-      font-size: 0.88em;
+      font-size: 0.9em;
       background: var(--iw-bg-alt);
       border: 1px solid var(--iw-border);
-      padding: 2px 7px;
-      border-radius: 4px;
+      padding: 0.2em 0.5em;
+      border-radius: 6px;
       color: var(--iw-brand);
     }
 
     .post-content pre {
-      background: var(--iw-bg-deep);
+      background: #121212;
       border: 1px solid var(--iw-border);
-      border-radius: var(--r-md);
-      padding: 20px 24px;
+      border-radius: var(--r-lg);
+      padding: 24px;
       overflow-x: auto;
-      margin: 1.6em 0;
+      margin: 2em 0;
+      box-shadow: var(--iw-shadow-lg);
     }
 
     .post-content pre code {
       background: none;
       border: none;
       padding: 0;
-      font-size: 0.9rem;
-      color: var(--iw-ink-2);
+      font-size: 0.95rem;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+
+    .post-content hr {
+      border: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--iw-border), transparent);
+      margin: 3em 0;
     }
 
     /* Drop-cap first paragraph */
     .post-content > p:first-child::first-letter {
       font-family: var(--font-display);
-      font-size: 3.8em;
-      font-weight: 500;
-      line-height: 0.75;
+      font-size: 4.2rem;
+      font-weight: 600;
+      line-height: 0.8;
       float: left;
-      margin: 0.08em 0.1em 0 0;
+      margin: 0.1em 0.12em 0.1em 0;
       color: var(--iw-brand);
+      text-transform: uppercase;
     }
 
     /* ════════════════════════════════
@@ -1130,7 +1208,7 @@ export class PostDetailPageComponent implements AfterViewInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly platformId = inject(PLATFORM_ID);
   protected readonly authSession = inject(AuthSessionService);
-  private readonly router = inject(Router);
+  protected readonly router = inject(Router);
   private readonly postApiService = inject(PostApiService);
   private readonly commentApiService = inject(CommentApiService);
   private readonly authApiService = inject(AuthApiService);
@@ -1143,9 +1221,9 @@ export class PostDetailPageComponent implements AfterViewInit, OnDestroy {
   readonly readProgress = signal(0);
   readonly showStickyBar = signal(false);
   readonly hasClapped = signal(false);
-  readonly clapAnimating = signal(false);
   readonly bookmarked = signal(false);
-  readonly followingAuthor = signal(false);
+  readonly isLoading = signal(false);
+  readonly clapAnimating = signal(false);
 
   private clapTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -1156,6 +1234,58 @@ export class PostDetailPageComponent implements AfterViewInit, OnDestroy {
     author: 'InkWell',
     claps: 0,
     comments: 0
+  });
+
+  readonly formattedContent = computed(() => {
+    const raw = this.article().content || this.article().body || '';
+    if (!raw) return '';
+
+    // If it looks like HTML, return as-is
+    if (/<[a-z][\s\S]*>/i.test(raw)) {
+      return raw;
+    }
+
+    // Basic markdown-style parser
+    let formatted = raw
+      // Bold
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__(.*?)__/g, '<strong>$1</strong>')
+      // Italic
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/_(.*?)_/g, '<em>$1</em>')
+      // Links [text](url)
+      .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>')
+      // Horizontal rules
+      .replace(/^---$/gm, '<hr class="post-hr">');
+
+    // Split into blocks (paragraphs or lists)
+    const blocks = formatted.split(/\n\s*\n/);
+    
+    return blocks.map((block: string) => {
+      const trimmed = block.trim();
+      const lines = trimmed.split('\n');
+      
+      // Check if it's a blockquote
+      if (trimmed.startsWith('> ')) {
+        const quoteContent = lines.map((line: string) => line.replace(/^>\s?/, '')).join('<br>');
+        return `<blockquote>${quoteContent}</blockquote>`;
+      }
+
+      // Check if it's a bullet list
+      if (lines.every((line: string) => /^[\*\-]\s/.test(line.trim()))) {
+        const items = lines.map((line: string) => `<li>${line.trim().replace(/^[\*\-]\s/, '')}</li>`).join('');
+        return `<ul>${items}</ul>`;
+      }
+      
+      // Check if it's a numbered list
+      if (lines.every((line: string) => /^\d+\.\s/.test(line.trim()))) {
+        const items = lines.map((line: string) => `<li>${line.trim().replace(/^\d+\.\s/, '')}</li>`).join('');
+        return `<ol>${items}</ol>`;
+      }
+      
+      // Otherwise it's a paragraph
+      return `<p>${block.trim().replace(/\n/g, '<br>')}</p>`;
+    }).join('');
   });
 
   readonly comments = signal<Comment[]>([]);
@@ -1195,40 +1325,63 @@ export class PostDetailPageComponent implements AfterViewInit, OnDestroy {
   private fetchPost(id: string): void {
     this.postApiService.getPost(id).subscribe({
       next: (post: any) => {
-        const authorName = post.authorName || 'InkWell Author';
-        const initials = authorName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+        const authorName = post.authorName || "InkWell Author";
+        const initials = authorName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
         
         const authorId = post.authorId || 1;
+        const coverImageUrl = post.coverImageUrl || post.coverUrl || post.featuredImageUrl || post.thumbnailUrl;
+        
         this.article.set({
           ...post,
           author: authorName,
           initials: initials,
           authorId: authorId,
-          authorBio: 'InkWell featured author and storyteller.',
-          followerCount: 2841,
-          storyCount: 18,
-          readCount: '47K',
-          avatarGradient: `linear-gradient(135deg, hsl(${Math.random() * 360}, 70%, 50%), hsl(${Math.random() * 360}, 80%, 40%))`,
-          category: post.category?.name || 'General',
-          coverEmoji: post.category?.name === 'Technology' ? '💻' : 
-                      post.category?.name === 'Science' ? '🧪' : 
-                      post.category?.name === 'Philosophy' ? '🌀' : 
-                      post.category?.name === 'Culture' ? '🎨' : '📝',
-          published: new Date(post.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+          coverImageUrl: coverImageUrl,
+          coverEmoji: post.category?.name === "Technology" ? "💻" : 
+                      post.category?.name === "Science" ? "🧪" : 
+                      post.category?.name === "Philosophy" ? "🌀" : 
+                      post.category?.name === "Culture" ? "🎨" : "📝",
+          published: new Date(post.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
           claps: post.likeCount || 0,
-          comments: 0 // Will be updated by comments fetch
         });
 
-        // Fetch author profile for real bio
-        this.authApiService.getUserProfile(authorId).subscribe({
-          next: (user: AuthUser) => {
-            if (user.bio) {
-              this.article.update(a => ({ ...a, authorBio: user.bio! }));
-              this.cdr.markForCheck();
-            }
-          }
-        });
-        this.cdr.markForCheck();
+        // Fetch additional author data
+        this.fetchAuthorStats(authorId);
+      },
+      error: () => this.isLoading.set(false)
+    });
+  }
+
+  private fetchAuthorStats(authorId: number): void {
+    // Get author profile for bio and followers
+    this.authApiService.getUserProfile(authorId).subscribe({
+      next: (profile) => {
+        this.article.update(a => ({
+          ...a,
+          authorBio: profile.bio || "InkWell featured author and storyteller.",
+          followerCount: profile.followerCount || 0,
+          isFollowing: profile.isFollowing || false,
+          avatarUrl: profile.avatarUrl || a.avatarUrl
+        }));
+
+        // Check following status if logged in
+        if (this.authSession.isAuthenticated()) {
+          this.authApiService.isFollowing(authorId).subscribe(res => {
+            this.article.update(a => ({ ...a, isFollowing: res.following }));
+          });
+        }
+      }
+    });
+
+    // Get author posts for story count and total reads
+    this.postApiService.listAuthorPosts(authorId).subscribe({
+      next: (posts: any[]) => {
+        const totalReads = posts.reduce((sum, p) => sum + (p.viewCount || 0), 0);
+        this.article.update(a => ({
+          ...a,
+          storyCount: posts.length,
+          readCount: totalReads > 1000 ? (totalReads / 1000).toFixed(1) + "K" : totalReads.toString()
+        }));
       }
     });
   }
@@ -1320,7 +1473,27 @@ export class PostDetailPageComponent implements AfterViewInit, OnDestroy {
       void this.router.navigate(['/login']);
       return;
     }
-    this.followingAuthor.update(v => !v);
+
+    const authorId = this.article().authorId;
+    if (!authorId) return;
+
+    if (this.article().isFollowing) {
+      this.authApiService.unfollowUser(authorId).subscribe(() => {
+        this.article.update(a => ({ 
+          ...a, 
+          isFollowing: false, 
+          followerCount: Math.max(0, (a.followerCount || 0) - 1) 
+        }));
+      });
+    } else {
+      this.authApiService.followUser(authorId).subscribe(() => {
+        this.article.update(a => ({ 
+          ...a, 
+          isFollowing: true, 
+          followerCount: (a.followerCount || 0) + 1 
+        }));
+      });
+    }
   }
 
   onBookmark(): void {

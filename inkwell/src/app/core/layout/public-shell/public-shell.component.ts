@@ -174,6 +174,148 @@ import { AuthSessionService } from '../../../features/auth/data-access/auth-sess
         <router-outlet />
       </main>
 
+      <!-- ══ FOOTER ══ -->
+      <footer class="footer">
+        <div class="footer__inner">
+          <div class="footer__grid">
+            
+            <!-- Brand & Mission -->
+            <div class="footer__col footer__col--brand">
+              <a class="navbar__brand" routerLink="/" style="margin-bottom: 20px;">
+                <div class="navbar__logo">
+                  <span class="navbar__quill">✒</span>
+                </div>
+                <strong class="navbar__name">InkWell</strong>
+              </a>
+              <p class="footer__text">
+                Elevating the world's most insightful stories. A home for deep thought, extraordinary writing, and ideas worth rereading.
+              </p>
+              <div class="footer__social">
+                <a href="#" class="footer__social-link" aria-label="Twitter">𝕏</a>
+                <a href="#" class="footer__social-link" aria-label="LinkedIn">in</a>
+                <a href="#" class="footer__social-link" aria-label="Instagram">📸</a>
+              </div>
+            </div>
+
+            <!-- Links -->
+            <div class="footer__col">
+              <h4 class="footer__title">Platform</h4>
+              <nav class="footer__nav">
+                <a routerLink="/" class="footer__link">Home</a>
+                <a routerLink="/feed" class="footer__link">Explore</a>
+                <a routerLink="/pricing" class="footer__link">Pricing</a>
+                <a routerLink="/register" class="footer__link">Start Writing</a>
+              </nav>
+            </div>
+
+            <!-- Support -->
+            <div class="footer__col">
+              <h4 class="footer__title">Community</h4>
+              <nav class="footer__nav">
+                <a href="#" (click)="openTerms('guidelines', $event)" class="footer__link">Guidelines</a>
+                <a href="#" (click)="openTerms('partnerships', $event)" class="footer__link">Partnerships</a>
+                <a href="#" (click)="openTerms('contact', $event)" class="footer__link">Contact</a>
+                <a href="mailto:inkwellbloggingplatform@gmail.com" class="footer__link">Support</a>
+              </nav>
+            </div>
+
+            <!-- Legal -->
+            <div class="footer__col">
+              <h4 class="footer__title">Legal</h4>
+              <nav class="footer__nav">
+                <a href="#" (click)="openTerms('tos', $event)" class="footer__link">Terms of Service</a>
+                <a href="#" (click)="openTerms('privacy', $event)" class="footer__link">Privacy Policy</a>
+                <a href="#" (click)="openTerms('cookies', $event)" class="footer__link">Cookie Policy</a>
+              </nav>
+            </div>
+
+          </div>
+
+          <div class="footer__bottom">
+            <p class="footer__copy">© 2025 InkWell Media. Crafted with passion for the written word.</p>
+            <div class="footer__status">
+              <span class="status-dot"></span> All systems operational
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      <!-- ══ LEGAL / SUPPORT MODAL ══ -->
+      <div class="terms-modal-overlay" *ngIf="showTermsModal()" (click)="closeTerms()" aria-modal="true" role="dialog">
+        <div class="terms-modal" (click)="$event.stopPropagation()">
+          <div class="terms-modal__head">
+            <h2 class="terms-modal__title">
+              <ng-container [ngSwitch]="termsType()">
+                <span *ngSwitchCase="'tos'">Terms of Service</span>
+                <span *ngSwitchCase="'privacy'">Privacy Policy</span>
+                <span *ngSwitchCase="'cookies'">Cookie Policy</span>
+                <span *ngSwitchCase="'guidelines'">Community Guidelines</span>
+                <span *ngSwitchCase="'partnerships'">Partnerships</span>
+                <span *ngSwitchCase="'contact'">Contact Us</span>
+              </ng-container>
+            </h2>
+            <button class="terms-modal__close" (click)="closeTerms()" aria-label="Close" type="button">✕</button>
+          </div>
+
+          <div class="terms-modal__body">
+            <ng-container [ngSwitch]="termsType()">
+              <!-- TOS -->
+              <div *ngSwitchCase="'tos'">
+                <h3 class="legal-h3">1. Acceptance of Terms</h3>
+                <p class="legal-p">By using InkWell, you agree to these terms. If you don't agree, please don't use our services.</p>
+                <h3 class="legal-h3">2. Content Ownership</h3>
+                <p class="legal-p">You own your words. By posting, you grant us a license to show them to the world on our platform.</p>
+                <h3 class="legal-h3">3. Pro Subscriptions</h3>
+                <p class="legal-p">Pro features are billed as described. You can cancel any time via your account settings.</p>
+              </div>
+
+              <!-- PRIVACY -->
+              <div *ngSwitchCase="'privacy'">
+                <h3 class="legal-h3">1. Data Collection</h3>
+                <p class="legal-p">We collect basic info like email and profile data to make InkWell work for you.</p>
+                <h3 class="legal-h3">2. Usage</h3>
+                <p class="legal-p">Your data is used for personalization and security. We never sell your personal data.</p>
+              </div>
+
+              <!-- COOKIES -->
+              <div *ngSwitchCase="'cookies'">
+                <h3 class="legal-h3">Cookie Policy</h3>
+                <p class="legal-p">We use essential cookies to keep you logged in and functional cookies to remember your preferences (like theme settings).</p>
+                <p class="legal-p">By continuing to use InkWell, you consent to our use of these essential and functional cookies.</p>
+              </div>
+
+              <!-- GUIDELINES -->
+              <div *ngSwitchCase="'guidelines'">
+                <h3 class="legal-h3">Community Guidelines</h3>
+                <p class="legal-p">1. Be respectful to other writers and readers.</p>
+                <p class="legal-p">2. No plagiarism. Original content only.</p>
+                <p class="legal-p">3. No hate speech or harassment.</p>
+                <p class="legal-p">4. No spam or deceptive promotional content.</p>
+              </div>
+
+              <!-- PARTNERSHIPS -->
+              <div *ngSwitchCase="'partnerships'">
+                <h3 class="legal-h3">Build with us</h3>
+                <p class="legal-p">We're always looking to partner with creative organizations and fellow technology platforms.</p>
+                <p class="legal-p">Reach out to <strong>partners@inkwell.com</strong> to start a conversation.</p>
+              </div>
+
+              <!-- CONTACT -->
+              <div *ngSwitchCase="'contact'">
+                <h3 class="legal-h3">Get in touch</h3>
+                <p class="legal-p">Have questions or feedback? We'd love to hear from you.</p>
+                <p class="legal-p">General Inquiry: <strong>inkwellbloggingplatform@gmail.com</strong></p>
+                <p class="legal-p">Social & Links: <a href="https://linktr.ee/harshvardhan3656" target="_blank" style="color: var(--iw-brand); font-weight: 600;">linktr.ee/harshvardhan3656</a></p>
+              </div>
+            </ng-container>
+          </div>
+
+          <div class="terms-modal__foot">
+            <button class="btn btn-brand btn-full" (click)="closeTerms()" type="button">Close</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   `,
   styles: [`
@@ -525,42 +667,233 @@ import { AuthSessionService } from '../../../features/auth/data-access/auth-sess
     }
 
     /* ════════════════════════════
+       FOOTER
+    ════════════════════════════ */
+    .footer {
+      background: var(--iw-bg-alt);
+      border-top: 1px solid var(--iw-border);
+      padding: 60px 24px 30px;
+      margin-top: 40px;
+    }
+
+    .footer__inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .footer__grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 50px;
+    }
+
+    .footer__col--brand {
+      padding-right: 40px;
+    }
+
+    .footer__text {
+      font-size: 0.94rem;
+      color: var(--iw-muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .footer__title {
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--iw-ink);
+      margin-bottom: 20px;
+    }
+
+    .footer__nav {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .footer__link {
+      font-size: 0.9rem;
+      color: var(--iw-muted);
+      text-decoration: none;
+      transition: var(--trans);
+    }
+
+    .footer__link:hover {
+      color: var(--iw-brand);
+      padding-left: 4px;
+    }
+
+    .footer__social {
+      display: flex;
+      gap: 12px;
+    }
+
+    .footer__social-link {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--iw-surface-solid);
+      border: 1px solid var(--iw-border-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      color: var(--iw-muted);
+      transition: var(--trans);
+    }
+
+    .footer__social-link:hover {
+      background: var(--iw-brand-soft);
+      color: var(--iw-brand);
+      border-color: var(--iw-brand);
+      transform: translateY(-3px);
+    }
+
+    .footer__bottom {
+      padding-top: 30px;
+      border-top: 1px solid var(--iw-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer__copy {
+      font-size: 0.82rem;
+      color: var(--iw-faint);
+    }
+
+    .footer__status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--iw-emerald);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--iw-emerald);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--iw-emerald);
+      animation: pulse-glow 2s infinite;
+    }
+
+    @media (max-width: 960px) {
+      .footer__grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+      }
+      .footer__col--brand {
+        grid-column: span 2;
+        padding-right: 0;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .footer__grid {
+        grid-template-columns: 1fr;
+      }
+      .footer__col--brand {
+        grid-column: span 1;
+      }
+      .footer__bottom {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
+    /* ════════════════════════════
        RESPONSIVE
     ════════════════════════════ */
-    @media (max-width: 960px) {
-      .navbar__inner {
-        grid-template-columns: auto 1fr auto;
-      }
-
-      .navbar__nav {
-        display: none;
-      }
-
-      .navbar__hamburger {
-        display: flex;
-        order: 3;
-      }
-      
-      .navbar__actions {
-        gap: 4px;
-      }
+    /* ════════════════════════════
+       MODAL (Legal & Support)
+    ════════════════════════════ */
+    .terms-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeInModal 0.3s ease both;
     }
 
-    @media (max-width: 640px) {
-      .navbar__wordmark {
-        display: none;
-      }
+    .terms-modal {
+      width: 100%;
+      max-width: 540px;
+      background: var(--iw-bg);
+      border: 1px solid var(--iw-border);
+      border-radius: 20px;
+      box-shadow: var(--iw-shadow-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: scaleInModal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
 
-    @media (max-width: 480px) {
-      .navbar {
-        padding: 8px clamp(8px, 2vw, 16px);
-      }
-
-      .navbar__tagline {
-        display: none;
-      }
+    .terms-modal__head {
+      padding: 24px;
+      border-bottom: 1px solid var(--iw-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--iw-bg-alt);
     }
+
+    .terms-modal__title {
+      margin: 0;
+      font-size: 1.25rem;
+      font-family: var(--font-display);
+      color: var(--iw-ink);
+    }
+
+    .terms-modal__close {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--iw-surface);
+      border: 1px solid var(--iw-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--iw-muted);
+      cursor: pointer;
+      transition: var(--trans);
+    }
+
+    .terms-modal__close:hover {
+      background: var(--iw-brand-soft);
+      color: var(--iw-brand);
+      border-color: var(--iw-brand);
+    }
+
+    .terms-modal__body {
+      padding: 24px;
+      max-height: 50vh;
+      overflow-y: auto;
+    }
+
+    .legal-h3 { margin: 16px 0 8px; color: var(--iw-ink); font-size: 1.05rem; font-family: var(--font-display); }
+    .legal-p { margin-bottom: 16px; color: var(--iw-muted); font-size: 0.92rem; line-height: 1.6; }
+
+    .terms-modal__foot {
+      padding: 20px 24px;
+      background: var(--iw-bg-alt);
+      border-top: 1px solid var(--iw-border);
+    }
+
+    @keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes scaleInModal { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -578,6 +911,25 @@ export class PublicShellComponent implements OnInit {
 
   protected readonly isScrolled = signal(false);
   protected readonly mobileOpen = signal(false);
+
+  readonly showTermsModal = signal(false);
+  readonly termsType = signal<'tos' | 'privacy' | 'cookies' | 'guidelines' | 'partnerships' | 'contact'>('tos');
+
+  openTerms(type: 'tos' | 'privacy' | 'cookies' | 'guidelines' | 'partnerships' | 'contact', event?: Event) {
+    event?.preventDefault();
+    this.termsType.set(type);
+    this.showTermsModal.set(true);
+    if (isPlatformBrowser(this.platformId)) {
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  closeTerms() {
+    this.showTermsModal.set(false);
+    if (isPlatformBrowser(this.platformId)) {
+      document.body.style.overflow = '';
+    }
+  }
 
   ngOnInit(): void {
     // Handled by HostListener

@@ -223,6 +223,35 @@
   to { transform: rotate(360deg); }
 }
 
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+
+  .btn-action {
+    background: var(--iw-bg);
+    border: 1px solid var(--iw-border);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+
+    &--approve:hover {
+      background: rgba(46, 204, 113, 0.1);
+      border-color: #2ecc71;
+    }
+    &--reject:hover {
+      background: rgba(231, 76, 60, 0.1);
+      border-color: #e74c3c;
+    }
+  }
+}
+
 .table-responsive {
   overflow-x: auto;
 }

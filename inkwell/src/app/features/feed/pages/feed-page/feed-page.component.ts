@@ -19,6 +19,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PostApiService } from '../../../author/data-access/post-api.service';
 import { AuthSessionService } from '../../../auth/data-access/auth-session.service';
+import { AuthApiService } from '../../../auth/data-access/auth-api.service';
 
 
 type FilterTab = { id: string; label: string; };
@@ -37,7 +38,9 @@ interface FeedPost {
   comments: number;
   emoji: string;
   bookmarked: boolean;
+  coverImageUrl?: string;
   clapPending?: boolean;
+  authorId: string | number;
 }
 
 interface SuggestedWriter {
@@ -131,7 +134,7 @@ interface SuggestedWriter {
                 [routerLink]="['/blog', post.id]"
               >
                 <!-- Author row -->
-                <div class="feed-post__author">
+                <div class="feed-post__author" (click)="$event.stopPropagation(); router.navigate(['/profile', post.authorId])" style="cursor: pointer;">
                   <div class="avatar avatar-sm" [style.background]="post.avatarGradient">
                     {{ post.initials }}
                   </div>
@@ -147,7 +150,10 @@ interface SuggestedWriter {
                     <p class="feed-post__excerpt">{{ post.excerpt }}</p>
                   </div>
                   <div class="feed-post__thumb">
-                    <div class="feed-post__thumb-inner">{{ post.emoji }}</div>
+                    <img *ngIf="post.coverImageUrl; else noThumb" [src]="post.coverImageUrl" alt="Post cover" class="feed-post__thumb-img" />
+                    <ng-template #noThumb>
+                      <div class="feed-post__thumb-inner">{{ post.emoji }}</div>
+                    </ng-template>
                   </div>
                 </div>
 
@@ -212,22 +218,25 @@ interface SuggestedWriter {
         <!-- ── SIDEBAR ── -->
         <aside class="feed-sidebar">
 
-          <!-- Staff picks -->
+          <!-- Trending -->
           <div class="sidebar-card">
-            <div class="sidebar-card__title">⭐ Staff Picks</div>
+            <div class="sidebar-card__title">🔥 Trending on InkWell</div>
             <div
               class="staff-pick"
-              *ngFor="let pick of staffPicks; let i = index"
+              *ngFor="let pick of trendingPosts(); let i = index"
             >
               <div class="staff-pick__num">{{ (i + 1).toString().padStart(2,'0') }}</div>
               <div class="staff-pick__body">
                 <a class="staff-pick__title" [routerLink]="['/blog', pick.id]">{{ pick.title }}</a>
-                <div class="staff-pick__meta">
-                  <div class="avatar avatar-sm" [style.background]="pick.gradient">{{ pick.initials }}</div>
-                  <span>{{ pick.author }}</span>
-                  <span class="read-time">{{ pick.readTime }}</span>
-                </div>
+                  <div class="staff-pick__meta" (click)="$event.stopPropagation(); router.navigate(['/profile', pick.authorId])" style="cursor: pointer;">
+                    <div class="avatar avatar-sm" [style.background]="pick.avatarGradient">{{ pick.initials }}</div>
+                    <span>{{ pick.author }}</span>
+                    <span class="read-time">{{ pick.readTime }}</span>
+                  </div>
               </div>
+            </div>
+            <div *ngIf="trendingPosts().length === 0" class="empty-trending">
+               No trending posts yet.
             </div>
           </div>
 
@@ -592,7 +601,15 @@ interface SuggestedWriter {
       transition: transform 0.35s ease;
     }
 
-    .feed-post:hover .feed-post__thumb-inner {
+    .feed-post__thumb-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.35s ease;
+    }
+
+    .feed-post:hover .feed-post__thumb-inner,
+    .feed-post:hover .feed-post__thumb-img {
       transform: scale(1.08);
     }
 
@@ -836,6 +853,13 @@ interface SuggestedWriter {
       color: var(--iw-muted);
     }
 
+    .empty-trending {
+      font-size: 0.8rem;
+      color: var(--iw-faint);
+      text-align: center;
+      padding: 10px 0;
+    }
+
     /* Writer rows */
     .writer-row {
       display: flex;
@@ -998,6 +1022,7 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /* ── Data ── */
   private readonly allPosts = signal<FeedPost[]>([]);
+  readonly trendingPosts = signal<FeedPost[]>([]);
 
   readonly filteredPosts = computed(() => {
     const tab   = this.activeTab();
@@ -1032,12 +1057,29 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
     return posts;
   });
 
-  readonly suggestedWriters = signal<SuggestedWriter[]>([
-    { userId: 1, name: 'Priya Mehta',  initials: 'PM', bio: 'Culture & Design',  gradient: 'linear-gradient(135deg,#7c3d8a,#3d1a50)', following: false, followers: 2410 },
-    { userId: 2, name: 'Jatin Kumar',  initials: 'JK', bio: 'Tech & Society',    gradient: 'linear-gradient(135deg,#2a8a6a,#0f3d28)', following: false, followers: 1850 },
-    { userId: 3, name: 'Ananya Lal',   initials: 'AL', bio: 'Fiction & Poetry',  gradient: 'linear-gradient(135deg,#c9893a,#9a5f1a)', following: false, followers: 3200 },
-    { userId: 4, name: 'Devika Shah',  initials: 'DV', bio: 'Product & Growth',  gradient: 'linear-gradient(135deg,#3d78d8,#1a3a7a)', following: true,  followers: 4700 },
-  ]);
+  private readonly followingNames = signal<Set<string>>(new Set());
+
+  readonly suggestedWriters = computed(() => {
+    const posts = this.trendingPosts();
+    const followed = this.followingNames();
+    const uniqueAuthors = new Map<string, SuggestedWriter>();
+
+    posts.forEach(p => {
+      if (!uniqueAuthors.has(p.author)) {
+        uniqueAuthors.set(p.author, {
+          userId: p.authorId,
+          name: p.author,
+          initials: p.initials,
+          bio: p.category || 'Thought Leader',
+          gradient: p.avatarGradient,
+          following: followed.has(p.author),
+          followers: (p as any).followerCount || 1200
+        });
+      }
+    });
+
+    return Array.from(uniqueAuthors.values()).slice(0, 4);
+  });
 
   readonly staffPicks = [
     { id: 'quiet-art',     title: 'The Quiet Art of Doing Nothing',             author: 'Shreya Rao',   initials: 'SR', gradient: 'linear-gradient(135deg,#c9893a,#9a5f1a)', readTime: '8 min' },
@@ -1082,7 +1124,8 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly postApiService = inject(PostApiService);
   private readonly authSession = inject(AuthSessionService);
-  private readonly router = inject(Router);
+  private readonly authApiService = inject(AuthApiService);
+  protected readonly router = inject(Router);
   readonly isGuest = computed(() => !this.authSession.isAuthenticated());
 
   ngOnInit(): void {
@@ -1091,27 +1134,44 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.fetchPosts();
+    this.fetchTrendingPosts();
+  }
+
+  private fetchTrendingPosts(): void {
+    this.postApiService.getTrendingPosts().subscribe({
+      next: (posts: any) => {
+        const mapped = (posts as any[]).map(p => this.mapPost(p)).slice(0, 7);
+        this.trendingPosts.set(mapped);
+      },
+      error: () => {}
+    });
+  }
+
+  private mapPost(p: any): FeedPost {
+    return {
+      id: p.id.toString(),
+      category: p.category?.name || 'General',
+      readTime: '5 min read',
+      title: p.title,
+      excerpt: p.excerpt || p.summary || 'No excerpt available',
+      author: p.authorName || p.author?.fullName || p.author?.username || 'InkWell Author',
+      initials: (p.authorName || p.author?.fullName || p.author?.username || 'IA').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+      avatarGradient: 'linear-gradient(135deg,#c9893a,#9a5f1a)',
+      published: new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      claps: p.likeCount || 0,
+      comments: 0,
+      emoji: '📝',
+      bookmarked: false,
+      coverImageUrl: p.coverImageUrl || p.coverUrl || p.thumbnailUrl || p.featuredImageUrl,
+      authorId: p.authorId || p.author?.id || 0
+    };
   }
 
   private fetchPosts(): void {
     this.isLoading.set(true);
     this.postApiService.listPosts().subscribe({
       next: (posts: any) => {
-        const mappedPosts: FeedPost[] = (posts as any[]).map(p => ({
-          id: p.id.toString(),
-          category: p.category?.name || 'General',
-          readTime: '5 min read', // Mock for now or calculate from content
-          title: p.title,
-          excerpt: p.excerpt || p.summary || 'No excerpt available',
-          author: p.authorName || p.author?.fullName || p.author?.username || 'InkWell Author',
-          initials: (p.authorName || p.author?.fullName || p.author?.username || 'IA').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
-          avatarGradient: 'linear-gradient(135deg,#c9893a,#9a5f1a)',
-          published: new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          claps: p.likeCount || 0,
-          comments: 0, // Need to fetch count separately or include in API
-          emoji: '📝',
-          bookmarked: false,
-        }));
+        const mappedPosts: FeedPost[] = (posts as any[]).map(p => this.mapPost(p));
         this.allPosts.set(mappedPosts);
         this.isLoading.set(false);
       },
@@ -1168,9 +1228,34 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
       void this.router.navigate(['/login']);
       return;
     }
-    this.suggestedWriters.update((list: SuggestedWriter[]) =>
-      list.map((w: SuggestedWriter) => w.name === writer.name ? { ...w, following: !w.following } : w)
-    );
+
+    const name = writer.name;
+    const userId = writer.userId;
+    if (!userId) return;
+
+    const currentlyFollowing = this.followingNames().has(name);
+
+    if (currentlyFollowing) {
+      this.authApiService.unfollowUser(userId).subscribe({
+        next: () => {
+          this.followingNames.update(set => {
+            const newSet = new Set(set);
+            newSet.delete(name);
+            return newSet;
+          });
+        }
+      });
+    } else {
+      this.authApiService.followUser(userId).subscribe({
+        next: () => {
+          this.followingNames.update(set => {
+            const newSet = new Set(set);
+            newSet.add(name);
+            return newSet;
+          });
+        }
+      });
+    }
   }
 
   loadMore(): void {
