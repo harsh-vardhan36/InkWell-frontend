@@ -44,6 +44,12 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/login/oauth2/*"
+  to = "http://15.206.128.235:8080/login/oauth2/:splat"
+  status = 200
+  force = true
+
 # SPA Routing Fallback
 [[redirects]]
   from = "/*"
