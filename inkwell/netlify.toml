@@ -2,6 +2,9 @@
   command = "npm run build"
   publish = "dist/inkwell/browser"
 
+[build.environment]
+  NPM_FLAGS = "--legacy-peer-deps"
+
 [[redirects]]
   from = "/auth/*"
   to = "http://13.234.204.195:8080/auth/:splat"
