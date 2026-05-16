@@ -5,6 +5,7 @@ import { HttpInterceptorFn } from '@angular/common/http';
 
 import { routes } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import { provideHotToastConfig } from '@ngneat/hot-toast';
 
 import { environment } from '../environments/environment';
 
@@ -41,5 +42,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     provideClientHydration(withEventReplay()),
+    provideHotToastConfig(),
   ]
 };

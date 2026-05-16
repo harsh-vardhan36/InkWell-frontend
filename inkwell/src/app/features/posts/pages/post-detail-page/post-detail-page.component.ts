@@ -1345,6 +1345,12 @@ export class PostDetailPageComponent implements AfterViewInit, OnDestroy {
           claps: post.likeCount || 0,
         });
 
+        // Check bookmark status
+        const user = this.authSession.user();
+        if (user) {
+          this.postApiService.isBookmarked(id, user.userId).subscribe(is => this.bookmarked.set(is));
+        }
+
         // Fetch additional author data
         this.fetchAuthorStats(authorId);
       },
@@ -1459,13 +1465,24 @@ export class PostDetailPageComponent implements AfterViewInit, OnDestroy {
       this.router.navigate(['/login']);
       return;
     }
-    this.hasClapped.update(v => !v);
-    this.clapAnimating.set(true);
-    if (this.clapTimer) clearTimeout(this.clapTimer);
-    this.clapTimer = setTimeout(() => {
-      this.clapAnimating.set(false);
-      this.cdr.markForCheck();
-    }, 450);
+
+    const isLiking = !this.hasClapped();
+    const action$ = isLiking 
+      ? this.postApiService.likePost(this.article().id)
+      : this.postApiService.unlikePost(this.article().id);
+
+    action$.subscribe({
+      next: () => {
+        this.hasClapped.update(v => !v);
+        this.article.update(a => ({ ...a, claps: isLiking ? a.claps + 1 : a.claps - 1 }));
+        this.clapAnimating.set(true);
+        if (this.clapTimer) clearTimeout(this.clapTimer);
+        this.clapTimer = setTimeout(() => {
+          this.clapAnimating.set(false);
+          this.cdr.markForCheck();
+        }, 450);
+      }
+    });
   }
 
   toggleFollow(): void {
@@ -1497,10 +1514,21 @@ export class PostDetailPageComponent implements AfterViewInit, OnDestroy {
   }
 
   onBookmark(): void {
-    if (this.isGuest()) {
-      void this.router.navigate(['/login']);
+    const user = this.authSession.user();
+    if (!user) {
+      this.router.navigate(['/login']);
       return;
     }
-    this.bookmarked.update(v => !v);
+
+    const isAdding = !this.bookmarked();
+    const action$ = isAdding
+      ? this.postApiService.bookmarkPost(this.article().id, user.userId)
+      : this.postApiService.unbookmarkPost(this.article().id, user.userId);
+
+    action$.subscribe({
+      next: () => {
+        this.bookmarked.update(v => !v);
+      }
+    });
   }
 }

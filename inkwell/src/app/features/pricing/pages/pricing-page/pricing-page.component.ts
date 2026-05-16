@@ -381,6 +381,16 @@ interface FaqItem {
         </div>
       </section>
 
+      <style>
+        @media (max-width: 800px) {
+          .comparison-section { display: none; } /* Hide complex table on mobile for UX */
+          .proof-inner { flex-direction: column; gap: 32px; }
+          .cta-band-inner { flex-direction: column; text-align: center; padding: 48px 24px; }
+          .cta-title { font-size: 2.2rem; }
+          .cta-right { width: 100%; }
+        }
+      </style>
+
     </div>
   `,
   styles: [`
@@ -658,6 +668,39 @@ interface FaqItem {
       grid-template-columns: 1fr 1.1fr 1fr;
       gap: 24px;
       align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .plans-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+      }
+      .plan-publication {
+        grid-column: span 2;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .pricing-hero { padding: 100px 20px 60px; }
+      .hero-title { font-size: 3rem; }
+      .hero-watermark { display: none; }
+      
+      .plans-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      .plan-publication {
+        grid-column: span 1;
+        width: 100%;
+      }
+      .plan-card { padding: 32px 24px; }
+      
+      .trial-banner-inner {
+        flex-direction: column;
+        text-align: center;
+      }
     }
 
     /* Plan Card Base */

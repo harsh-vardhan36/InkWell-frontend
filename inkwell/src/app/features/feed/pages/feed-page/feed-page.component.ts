@@ -20,6 +20,8 @@ import { FormsModule } from '@angular/forms';
 import { PostApiService } from '../../../author/data-access/post-api.service';
 import { AuthSessionService } from '../../../auth/data-access/auth-session.service';
 import { AuthApiService } from '../../../auth/data-access/auth-api.service';
+import { HotToastService } from '@ngneat/hot-toast';
+
 
 
 type FilterTab = { id: string; label: string; };
@@ -124,9 +126,16 @@ interface SuggestedWriter {
             </div>
           </ng-container>
 
-          <!-- Feed posts -->
-          <ng-container *ngIf="!isLoading()">
+          <!-- Search loading state -->
+          <ng-container *ngIf="!isLoading() && isSearching()">
+            <div class="search-loading" style="text-align:center; padding: 40px;">
+              <div class="spinner" style="margin: 0 auto 10px;"></div>
+              <p style="color: var(--iw-faint);">Searching for "{{ searchQuery() }}"...</p>
+            </div>
+          </ng-container>
 
+          <!-- Feed posts -->
+          <ng-container *ngIf="!isLoading() && !isSearching()">
             <ng-container *ngIf="filteredPosts().length > 0; else emptyState">
               <article
                 *ngFor="let post of filteredPosts(); trackBy: trackById"
@@ -196,11 +205,13 @@ interface SuggestedWriter {
             <ng-template #emptyState>
               <div class="empty-state">
                 <div class="empty-state__icon">📭</div>
-                <h3 class="empty-state__title">No stories found</h3>
-                <p class="empty-state__sub">
-                  Try a different filter, or
-                  <a routerLink="/write">write one yourself</a>.
+                <h3 class="empty-state__title">
+                  {{ searchQuery() ? 'No results for "' + searchQuery() + '"' : 'No stories found' }}
+                </h3>
+                <p class="empty-state__text">
+                  {{ searchQuery() ? 'Try searching for something else or check your spelling.' : "We couldn't find any stories matching your current filters." }}
                 </p>
+                <button class="btn btn-outline btn-sm" (click)="resetFilters()" style="margin-top: 10px;">Clear all filters</button>
               </div>
             </ng-template>
 
@@ -1019,14 +1030,20 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly isLoadingMore  = signal(false);
   readonly searchFocused  = signal(false);
   readonly searchQuery    = signal('');
+  readonly searchResults  = signal<FeedPost[]>([]);
+  readonly isSearching    = signal(false);
 
   /* ── Data ── */
   private readonly allPosts = signal<FeedPost[]>([]);
   readonly trendingPosts = signal<FeedPost[]>([]);
 
   readonly filteredPosts = computed(() => {
-    const tab   = this.activeTab();
     const query = this.searchQuery().toLowerCase().trim();
+    if (query) {
+      return this.searchResults();
+    }
+
+    const tab   = this.activeTab();
     let posts   = this.allPosts();
 
     /* Tab filter */
@@ -1042,16 +1059,6 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (tab !== 'for-you' && tab !== 'following' && categoryMap[tab]) {
       posts = posts.filter(p => p.category === categoryMap[tab]);
-    }
-
-    /* Search filter */
-    if (query) {
-      posts = posts.filter(p =>
-        (p.title || '').toLowerCase().includes(query) ||
-        (p.excerpt || '').toLowerCase().includes(query) ||
-        (p.author || '').toLowerCase().includes(query) ||
-        (p.category || '').toLowerCase().includes(query)
-      );
     }
 
     return posts;
@@ -1125,6 +1132,7 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly postApiService = inject(PostApiService);
   private readonly authSession = inject(AuthSessionService);
   private readonly authApiService = inject(AuthApiService);
+  private readonly toast = inject(HotToastService);
   protected readonly router = inject(Router);
   readonly isGuest = computed(() => !this.authSession.isAuthenticated());
 
@@ -1148,9 +1156,28 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private mapPost(p: any): FeedPost {
+    const categoryLookup: Record<number, string> = {
+      1: 'Writing',
+      2: 'Philosophy',
+      3: 'Technology',
+      4: 'Culture',
+      5: 'Science',
+      6: 'Fiction',
+      7: 'Wellness',
+      8: 'Business',
+      9: 'Gaming',
+      10: 'Lifestyle',
+      11: 'Travel',
+      12: 'Food',
+      13: 'Entertainment',
+      14: 'Sports',
+      15: 'Education',
+      16: 'Uncategorized'
+    };
+
     return {
       id: p.id.toString(),
-      category: p.category?.name || 'General',
+      category: p.category?.name || categoryLookup[p.categoryId] || 'General',
       readTime: '5 min read',
       title: p.title,
       excerpt: p.excerpt || p.summary || 'No excerpt available',
@@ -1197,6 +1224,20 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onSearch(query: string): void {
     this.searchQuery.set(query);
+    const trimmed = query.trim();
+    
+    if (trimmed.length >= 2) {
+      this.isSearching.set(true);
+      this.postApiService.searchPosts(trimmed).subscribe({
+        next: (posts) => {
+          this.searchResults.set(posts.map(p => this.mapPost(p)));
+          this.isSearching.set(false);
+        },
+        error: () => this.isSearching.set(false)
+      });
+    } else {
+      this.searchResults.set([]);
+    }
   }
 
   clap(post: FeedPost): void {
@@ -1204,23 +1245,45 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
       void this.router.navigate(['/login']);
       return;
     }
-    this.allPosts.update((posts: FeedPost[]) =>
-      posts.map((p: FeedPost) =>
-        p.id === post.id
-          ? { ...p, clapPending: !p.clapPending, claps: p.clapPending ? p.claps - 1 : p.claps + 1 }
-          : p
-      )
-    );
+
+    const isLiking = !post.clapPending;
+    const action$ = isLiking 
+      ? this.postApiService.likePost(post.id)
+      : this.postApiService.unlikePost(post.id);
+
+    action$.subscribe({
+      next: () => {
+        this.allPosts.update((posts: FeedPost[]) =>
+          posts.map((p: FeedPost) =>
+            p.id === post.id
+              ? { ...p, clapPending: isLiking, claps: isLiking ? p.claps + 1 : p.claps - 1 }
+              : p
+          )
+        );
+      }
+    });
   }
 
   toggleBookmark(post: FeedPost): void {
-    if (this.isGuest()) {
+    const user = this.authSession.user();
+    if (!user) {
       void this.router.navigate(['/login']);
       return;
     }
-    this.allPosts.update((posts: FeedPost[]) =>
-      posts.map((p: FeedPost) => p.id === post.id ? { ...p, bookmarked: !p.bookmarked } : p)
-    );
+
+    const isAdding = !post.bookmarked;
+    const action$ = isAdding
+      ? this.postApiService.bookmarkPost(post.id, user.userId)
+      : this.postApiService.unbookmarkPost(post.id, user.userId);
+
+    action$.subscribe({
+      next: () => {
+        this.allPosts.update((posts: FeedPost[]) =>
+          posts.map((p: FeedPost) => p.id === post.id ? { ...p, bookmarked: isAdding } : p)
+        );
+        this.toast.success(isAdding ? 'Post bookmarked' : 'Bookmark removed');
+      }
+    });
   }
 
   toggleFollow(writer: SuggestedWriter): void {
@@ -1265,5 +1328,11 @@ export class FeedPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   trackById(_: number, post: FeedPost): string {
     return post.id;
+  }
+
+  resetFilters(): void {
+    this.searchQuery.set('');
+    this.activeTab.set('for-you');
+    this.fetchPosts();
   }
 }

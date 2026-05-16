@@ -278,11 +278,31 @@ import { AuthSessionService } from '../../../auth/data-access/auth-session.servi
     .hero__stat-num { font-family: var(--font-display); font-size: 2rem; color: var(--iw-ink); }
     .hero__stat-label { font-size: 0.75rem; color: var(--iw-faint); text-transform: uppercase; }
 
+    @media (max-width: 768px) {
+      .hero { padding: 60px 20px; min-height: 60vh; }
+      .hero__title { font-size: clamp(2.5rem, 10vw, 4rem); }
+      .hero__actions { flex-direction: column; width: 100%; max-width: 320px; margin-left: auto; margin-right: auto; }
+      .hero__stats { gap: 20px; flex-wrap: wrap; }
+      .hero__stat { flex: 1 1 120px; }
+      .hero__stat-num { font-size: 1.5rem; }
+    }
+
     .picks-section { padding: 80px 0; background: var(--iw-bg-alt); }
     .picks-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 24px; }
     .picks-card { background: var(--iw-surface-solid); border: 1px solid var(--iw-border); border-radius: 16px; overflow: hidden; text-decoration: none; color: inherit; transition: transform 0.2s; display: flex; flex-direction: column; }
     .picks-card:hover { transform: translateY(-4px); border-color: var(--iw-brand); box-shadow: var(--iw-shadow-md); }
     .picks-card--featured { grid-row: span 2; }
+
+    @media (max-width: 1024px) {
+      .picks-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      .picks-grid { grid-template-columns: 1fr; }
+      .picks-card--featured { grid-row: span 1; }
+      .section-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .see-all { align-self: flex-start; }
+    }
     .picks-card__cover { aspect-ratio: 16/9; background: var(--iw-bg-deep); display: flex; align-items: center; justify-content: center; font-size: 3rem; overflow: hidden; }
     .picks-card__img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
     .picks-card:hover .picks-card__img { transform: scale(1.05); }
@@ -305,6 +325,16 @@ import { AuthSessionService } from '../../../auth/data-access/auth-session.servi
     .trending-item__emoji { width: 60px; height: 60px; background: var(--iw-bg-deep); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
     .trending-item__img { width: 60px; height: 60px; object-fit: cover; border-radius: 12px; }
 
+    @media (max-width: 960px) {
+      .trending-layout { grid-template-columns: 1fr; }
+      .trending-sidebar { order: -1; }
+    }
+
+    @media (max-width: 600px) {
+      .trending-item { grid-template-columns: 40px 1fr; }
+      .trending-item__cover { display: none; }
+    }
+
     .trending-sidebar { display: flex; flex-direction: column; gap: 24px; }
     .sidebar-widget { background: var(--iw-surface-solid); border: 1px solid var(--iw-border); border-radius: 20px; padding: 24px; }
     .sidebar-widget__title { font-size: 0.9rem; font-weight: 700; color: var(--iw-ink-2); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -323,6 +353,12 @@ import { AuthSessionService } from '../../../auth/data-access/auth-session.servi
     .cta-band__sub { color: rgba(255,255,255,0.8); }
     .cta-band__actions { display: flex; flex-direction: column; gap: 16px; align-items: center; }
     .cta-band__link { color: #fff; text-decoration: underline; font-weight: 600; font-size: 0.9rem; }
+
+    @media (max-width: 800px) {
+      .cta-band__inner { padding: 40px 24px; flex-direction: column; text-align: center; gap: 32px; }
+      .cta-band__title { font-size: 2rem; }
+      .cta-band__actions { width: 100%; }
+    }
 
     .footer-removed { display: none; }
 

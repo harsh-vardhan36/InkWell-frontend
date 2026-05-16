@@ -606,20 +606,25 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   sparkColors: Record<string, string> = { amber: '#c9893a', emerald: '#2a8a6a', blue: '#3b82f6', violet: '#8b5cf6' };
 
-  statCards = computed<StatCard[]>(() => [
-    { label: 'Followers', value: this.realSubscribersCount(), displayValue: this.realSubscribersCount().toString(), change: 0, changeLabel: 'Total followers', icon: '👥', color: 'blue', sparkData: [60, 62, 65, 64, 68, 72, 70, 75, 78, 80, 84, 88] },
-    { label: 'Posts Made', value: this.postApi.authorPosts().length, displayValue: this.postApi.authorPosts().length.toString(), change: 0, changeLabel: 'Total posts', icon: '📄', color: 'violet', sparkData: [30, 32, 35, 34, 36, 38, 37, 40, 41, 43, 45, 47] },
-    { label: 'New Comments', value: 0, displayValue: '0', change: 0, changeLabel: 'Coming soon', icon: '💬', color: 'amber', sparkData: [20, 25, 22, 30, 28, 35, 32, 40, 38, 45, 42, 50] },
-    { label: 'Total Views', value: 0, displayValue: '0', change: 0, changeLabel: 'Coming soon', icon: '👁', color: 'emerald', sparkData: [40, 55, 48, 62, 58, 72, 68, 85, 78, 95, 88, 100] },
-  ]);
+  statCards = computed<StatCard[]>(() => {
+    const s = this.postApi.authorStats();
+    const subs = this.realSubscribersCount();
+
+    return [
+      { label: 'Followers', value: subs, displayValue: subs.toString(), change: 0, changeLabel: 'Total followers', icon: '👥', color: 'blue', sparkData: [60, 62, 65, 64, 68, 72, 70, 75, 78, 80, 84, 88] },
+      { label: 'Posts Made', value: s.totalPosts || 0, displayValue: (s.totalPosts || 0).toString(), change: 0, changeLabel: 'Total posts', icon: '📄', color: 'violet', sparkData: [30, 32, 35, 34, 36, 38, 37, 40, 41, 43, 45, 47] },
+      { label: 'New Comments', value: 0, displayValue: '0', change: 0, changeLabel: 'Coming soon', icon: '💬', color: 'amber', sparkData: [20, 25, 22, 30, 28, 35, 32, 40, 38, 45, 42, 50] },
+      { label: 'Total Views', value: s.totalViews || 0, displayValue: (s.totalViews || 0).toString(), change: 0, changeLabel: 'Global reach', icon: '👁', color: 'emerald', sparkData: [40, 55, 48, 62, 58, 72, 68, 85, 78, 95, 88, 100] },
+    ];
+  });
 
   allPosts = computed<Post[]>(() => {
     return this.postApi.authorPosts().map(p => ({
       id: p.id,
       title: p.title,
       status: p.status.toLowerCase() as any,
-      views: 0,
-      claps: 0,
+      views: p.viewCount || 0,
+      claps: p.likeCount || 0,
       comments: 0,
       earnings: 0,
       publishedAt: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : 'Just now',
@@ -719,9 +724,12 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
     this.postApi.refreshAuthorPosts();
 
-    this.newsletterApi.getSubscribers().subscribe(subs => {
-      this.realSubscribersCount.set(subs.length);
-    });
+    const user = this.authSession.user();
+    if (user) {
+      this.newsletterApi.getSubscribers(user.userId).subscribe(subs => {
+        this.realSubscribersCount.set(subs.length);
+      });
+    }
 
     setTimeout(() => this.bannerVisible.set(true), 100);
     setTimeout(() => this.statsVisible.set(true), 300);

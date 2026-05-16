@@ -26,6 +26,13 @@ export class PostApiService {
   private readonly postBase = '/posts';
 
   readonly authorPosts = signal<any[]>([]);
+  readonly authorStats = signal<any>({
+    totalPosts: 0,
+    publishedPosts: 0,
+    totalViews: 0,
+    totalLikes: 0,
+    totalBookmarks: 0
+  });
   readonly isLoading = signal(false);
 
   refreshAuthorPosts(): void {
@@ -33,6 +40,8 @@ export class PostApiService {
     if (!user?.userId) return;
 
     this.isLoading.set(true);
+    
+    // Fetch posts
     this.listAuthorPosts(user.userId).subscribe({
       next: (posts) => {
         this.authorPosts.set(posts);
@@ -40,19 +49,31 @@ export class PostApiService {
       },
       error: () => this.isLoading.set(false)
     });
+
+    // Fetch stats
+    this.getAuthorStats(user.userId).subscribe({
+      next: (stats) => this.authorStats.set(stats),
+      error: () => {}
+    });
   }
 
   listPosts(): Observable<any[]> {
     return this.getWithFallback<any[]>('').pipe(
       map(posts => {
         if (!posts || posts.length === 0) {
-          // If the first candidate returned empty, we don't necessarily want to fail,
-          // but we might want to try the other one if we haven't already.
           return posts;
         }
         return posts;
       })
     );
+  }
+
+  searchPosts(query: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.postBase}/search?query=${query}`);
+  }
+
+  getAuthorStats(authorId: number | string): Observable<any> {
+    return this.http.get<any>(`${this.postBase}/author/${authorId}/stats`);
   }
 
   listAuthorPosts(authorId: number | string): Observable<unknown[]> {
@@ -136,6 +157,28 @@ export class PostApiService {
         return res;
       })
     );
+  }
+
+  // --- Bookmarks & Likes ---
+
+  bookmarkPost(id: number | string, userId: number | string): Observable<void> {
+    return this.http.post<void>(`${this.postBase}/${id}/bookmark?userId=${userId}`, {});
+  }
+
+  unbookmarkPost(id: number | string, userId: number | string): Observable<void> {
+    return this.http.delete<void>(`${this.postBase}/${id}/bookmark?userId=${userId}`);
+  }
+
+  isBookmarked(id: number | string, userId: number | string): Observable<boolean> {
+    return this.http.get<boolean>(`${this.postBase}/${id}/is-bookmarked?userId=${userId}`);
+  }
+
+  likePost(id: number | string): Observable<void> {
+    return this.http.post<void>(`${this.postBase}/${id}/like`, {});
+  }
+
+  unlikePost(id: number | string): Observable<void> {
+    return this.http.post<void>(`${this.postBase}/${id}/unlike`, {});
   }
 
   private buildWritePayload(payload: PostEditorPayload) {

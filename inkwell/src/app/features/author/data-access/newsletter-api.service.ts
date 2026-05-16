@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface Subscriber {
@@ -14,8 +14,19 @@ export class NewsletterApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = '/newsletter';
 
-  getSubscribers(): Observable<Subscriber[]> {
-    return this.http.get<Subscriber[]>(`${this.baseUrl}/subscribers`);
+  getSubscribers(authorId?: number): Observable<Subscriber[]> {
+    let params = new HttpParams();
+    if (authorId) {
+      params = params.set('authorId', authorId.toString());
+    }
+    return this.http.get<Subscriber[]>(`${this.baseUrl}/subscribers`, { params });
+  }
+
+  subscribe(email: string, authorId: number): Observable<any> {
+    const params = new HttpParams()
+      .set('email', email)
+      .set('authorId', authorId.toString());
+    return this.http.post(`${this.baseUrl}/subscribe`, null, { params });
   }
 
   notifyNewPost(title: string, link: string): Observable<void> {
