@@ -481,6 +481,12 @@ import { AuthSessionService } from '../../../features/auth/data-access/auth-sess
     .btn-icon { display: none; }
 
     @media (max-width: 800px) {
+      .navbar__inner {
+        grid-template-columns: 1fr auto;
+        padding: 8px 16px;
+      }
+      .navbar__nav { display: none; }
+      .navbar__hamburger { display: flex; }
       .btn-label { display: none; }
       .btn-icon { 
         display: flex; 
@@ -796,7 +802,7 @@ import { AuthSessionService } from '../../../features/auth/data-access/auth-sess
       }
     }
 
-    @media (max-width: 500px) {
+    @media (max-width: 600px) {
       .footer__grid {
         grid-template-columns: 1fr;
       }
@@ -805,7 +811,7 @@ import { AuthSessionService } from '../../../features/auth/data-access/auth-sess
       }
       .footer__bottom {
         flex-direction: column;
-        align-items: flex-start;
+        text-align: center;
       }
     }
 

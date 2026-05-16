@@ -55,7 +55,7 @@ export class NewsletterPageComponent implements OnInit {
     // Load subscribers (using real Followers from Auth service)
     this.authApi.getFollowers().subscribe({
       next: (users) => {
-        const approvedUsers = users.filter(u => u.followStatus === 'APPROVED');
+        const approvedUsers = users.filter(u => u.followStatus === 'APPROVED' || u.followStatus === 'ACCEPTED');
         const mapped: Subscriber[] = approvedUsers.map(u => ({
           id: u.userId,
           email: u.email || u.username,

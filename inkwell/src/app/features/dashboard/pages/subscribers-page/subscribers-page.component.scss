@@ -169,7 +169,7 @@
     font-weight: 700;
     text-transform: uppercase;
     
-    &--active {
+    &--active, &--approved {
       background: rgba(46, 204, 113, 0.1);
       color: #27ae60;
     }

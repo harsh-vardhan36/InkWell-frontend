@@ -24,17 +24,13 @@ export class AnalyticsPageComponent implements OnInit {
   });
   
   readonly stats = computed(() => {
-    const posts = this.postApi.authorPosts();
-    const published = posts.filter(p => p.status === 'PUBLISHED');
-    const views = posts.reduce((acc, p) => acc + (p.viewCount || 0), 0);
-    const likes = posts.reduce((acc, p) => acc + (p.likeCount || 0), 0);
-    const totalReadTime = posts.reduce((acc, p) => acc + (p.readTime || 0), 0);
+    const s = this.postApi.authorStats();
     
     return {
-      totalViews: views,
-      totalLikes: likes,
-      avgReadTime: posts.length > 0 ? Math.round(totalReadTime / posts.length) : 0,
-      publishedCount: published.length
+      totalViews: s.totalViews || 0,
+      totalLikes: s.totalLikes || 0,
+      avgReadTime: 5, // Static for now or we can add it to backend stats
+      publishedCount: s.publishedPosts || 0
     };
   });
 

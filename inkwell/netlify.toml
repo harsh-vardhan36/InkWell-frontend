@@ -4,49 +4,49 @@
 
 [[redirects]]
   from = "/auth/*"
-  to = "http://13.232.250.70:8080/auth/:splat"
+  to = "http://13.234.204.195:8080/auth/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/*"
-  to = "http://13.232.250.70:8080/api/:splat"
+  to = "http://13.234.204.195:8080/api/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/comments/*"
-  to = "http://13.232.250.70:8080/comments/:splat"
+  to = "http://13.234.204.195:8080/comments/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/posts/*"
-  to = "http://13.232.250.70:8080/posts/:splat"
+  to = "http://13.234.204.195:8080/posts/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/categories/*"
-  to = "http://13.232.250.70:8080/categories/:splat"
+  to = "http://13.234.204.195:8080/categories/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/newsletter/*"
-  to = "http://13.232.250.70:8080/newsletter/:splat"
+  to = "http://13.234.204.195:8080/newsletter/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/oauth2/authorization/*"
-  to = "http://13.232.250.70:8080/oauth2/authorization/:splat"
+  to = "http://13.234.204.195:8080/oauth2/authorization/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/login/oauth2/*"
-  to = "http://13.232.250.70:8080/login/oauth2/:splat"
+  to = "http://13.234.204.195:8080/login/oauth2/:splat"
   status = 200
   force = true
 

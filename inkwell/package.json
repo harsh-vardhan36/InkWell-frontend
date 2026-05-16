@@ -22,7 +22,9 @@
     "@angular/ssr": "^21.2.5",
     "express": "^5.1.0",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "@ngneat/hot-toast": "^7.0.0",
+    "@ngneat/overview": "^6.0.0"
   },
   "devDependencies": {
     "@angular/build": "^21.2.5",
